@@ -1,5 +1,6 @@
 import { getKpi } from "@/lib/kpi";
 import CountUp from "@/components/CountUp";
+import AiBriefing from "@/components/AiBriefing";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,6 @@ export default async function Dashboard() {
       </div>
     );
 
-  const toneColor: Record<string, string> = {
-    good: "text-emerald-300 border-emerald-400/40",
-    warn: "text-amber-300 border-amber-400/40",
-    info: "text-cyan-200 border-cyan-400/40",
-  };
   const maxSection = Math.max(1, ...SECTIONS.map((s) => kpi.bySection[s] ?? 0));
 
   return (
@@ -43,18 +39,8 @@ export default async function Dashboard() {
         </div>
       </div>
 
-      {/* 자동 브리핑 */}
-      <div className="jarvis-card p-5 mb-6 fade-up" style={{ animationDelay: "0.05s" }}>
-        <div className="font-hud text-xs uppercase tracking-[0.25em] text-cyan-400/80 mb-3">⚡ AI 브리핑</div>
-        <div className="space-y-2.5">
-          {kpi.insights.map((ins, i) => (
-            <div key={i} className={`flex items-start gap-2 text-sm border-l-2 pl-3 ${toneColor[ins.tone]}`}>
-              <span>{ins.tone === "good" ? "✅" : ins.tone === "warn" ? "⚠️" : "▸"}</span>
-              <span className="text-slate-100">{ins.text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* AI 브리핑 (Gemini — 키 없으면 규칙 기반 fallback) */}
+      <AiBriefing fallback={kpi.insights} />
 
       {/* KPI 4카드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
