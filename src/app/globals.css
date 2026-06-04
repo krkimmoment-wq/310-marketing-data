@@ -1,40 +1,93 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 @import "tailwindcss";
 
 body {
-  font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  font-family: "Pretendard", -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
 }
 
-/* ===== JARVIS 테마 유틸 ===== */
-.jarvis {
-  background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(0, 229, 255, 0.08), transparent),
-    radial-gradient(900px 500px at 0% 110%, rgba(59, 130, 246, 0.08), transparent),
-    #070b16;
-  color: #cdd6f4;
+/* 영문/숫자 = Orbitron (자비스 폰트) */
+.font-hud {
+  font-family: var(--font-orbitron), "Pretendard", sans-serif;
+  letter-spacing: 0.04em;
 }
+
+/* ===== JARVIS 테마 ===== */
 .jarvis-card {
-  background: linear-gradient(180deg, rgba(18, 26, 45, 0.9), rgba(12, 18, 33, 0.9));
+  position: relative;
+  background: linear-gradient(180deg, rgba(18, 26, 45, 0.92), rgba(10, 16, 30, 0.92));
   border: 1px solid rgba(0, 229, 255, 0.18);
-  border-radius: 16px;
-  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.04), 0 8px 30px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(6px);
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.05), 0 8px 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
 }
-.jarvis-glow {
-  text-shadow: 0 0 12px rgba(0, 229, 255, 0.55);
+/* HUD 코너 브래킷 */
+.jarvis-card::before,
+.jarvis-card::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 229, 255, 0.55);
+  pointer-events: none;
 }
-.jarvis-neon {
-  color: #00e5ff;
+.jarvis-card::before {
+  top: 8px; left: 8px;
+  border-right: none; border-bottom: none;
+  border-top-left-radius: 4px;
 }
+.jarvis-card::after {
+  bottom: 8px; right: 8px;
+  border-left: none; border-top: none;
+  border-bottom-right-radius: 4px;
+}
+
+.jarvis-glow { text-shadow: 0 0 14px rgba(0, 229, 255, 0.6); }
+.jarvis-neon { color: #00e5ff; }
+
 .jarvis-grid-line {
-  background-image: linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
-  background-size: 32px 32px;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+  background-size: 34px 34px;
 }
+
+/* 스캔라인 오버레이 */
+.scanlines::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 229, 255, 0.03) 0px,
+    rgba(0, 229, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  animation: scan-move 8s linear infinite;
+}
+@keyframes scan-move {
+  from { background-position-y: 0; }
+  to { background-position-y: 100px; }
+}
+
+/* 라이브 점 */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.6); }
-  50% { opacity: 0.5; box-shadow: 0 0 0 6px rgba(0, 229, 255, 0); }
+  50% { opacity: 0.45; box-shadow: 0 0 0 7px rgba(0, 229, 255, 0); }
 }
 .live-dot {
   width: 8px; height: 8px; border-radius: 9999px; background: #00e5ff;
   animation: pulse-dot 1.8s infinite;
 }
+
+/* 카드 페이드+업 등장 */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* 막대 차트 글로우 */
+.bar-glow { box-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
