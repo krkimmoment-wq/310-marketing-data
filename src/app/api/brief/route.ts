@@ -29,16 +29,19 @@ export async function GET() {
 
   const kpi = await getKpi("14기");
   if (!kpi) return NextResponse.json({ insights: [] });
+  const k13 = await getKpi("13기");
 
-  const dataBlock = `다음은 14기 현재 운영 데이터입니다. 베테랑 시각의 인사이트 3개를 생성하세요.
+  const dataBlock = `다음은 14기 현재 운영 데이터입니다. 베테랑 그로스 시각의 인사이트 3개를 생성하세요.
+각 인사이트는 "현상+의미" 또는 "위험+대안" 형태로. 막연한 칭찬·뻔한 말 금지. 페이스 부족·전환 하락 같은 위험 신호를 우선 짚으세요.
 
 - 실등록: ${kpi.realRegs}명 / 목표 ${kpi.goal}명 (${kpi.progressPct}%)
 - ROAS: ${kpi.roas}배 / 매출 ₩${kpi.totalRevenue.toLocaleString("ko-KR")} / 광고비 ₩${kpi.totalAd.toLocaleString("ko-KR")}
 - CAC: ₩${kpi.cac.toLocaleString("ko-KR")}
-- 현재 페이스: ${kpi.currentPace}명/일 / 필요 페이스: ${kpi.requiredPace}명/일
+- 현재 페이스: ${kpi.currentPace}명/일 / 필요 페이스: ${kpi.requiredPace}명/일 ${kpi.currentPace < kpi.requiredPace ? "(⚠️부족)" : "(궤도)"}
 - 현재 페이스 유지 시 예상 최종: ${kpi.projectedFinal}명
 - 다음 분기점: ${kpi.ddayLabel}
-- 구간별 실등록: ${Object.entries(kpi.bySection).map(([k, v]) => `${k} ${v}명`).join(", ") || "사전등록만 진행"}`;
+- 구간별 실등록: ${Object.entries(kpi.bySection).map(([k, v]) => `${k} ${v}명`).join(", ") || "사전등록만 진행"}
+- 13기(완주) 비교: 실등록 ${k13?.realRegs ?? "-"}명, ROAS ${k13?.roas ?? "-"}배, CAC ₩${(k13?.cac ?? 0).toLocaleString("ko-KR")} (절대값 아닌 같은 시점·효율로 비교)`;
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);

@@ -91,3 +91,34 @@ body {
 
 /* 막대 차트 글로우 */
 .bar-glow { box-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
+
+/* 캘린더 당일 — 불빛 켜지는 모션 (강조) */
+@keyframes today-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.7), 0 0 0 0 rgba(0, 229, 255, 0.55), inset 0 0 6px rgba(0, 229, 255, 0.25);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(0, 229, 255, 1), 0 0 0 5px rgba(0, 229, 255, 0.28), inset 0 0 12px rgba(0, 229, 255, 0.5);
+    transform: scale(1.07);
+  }
+}
+.today-glow {
+  animation: today-glow 1.2s ease-in-out infinite;
+  border-color: #00e5ff !important;
+  background: rgba(0, 229, 255, 0.2) !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* A. 막대·게이지 차오름 (가로) — 클래스명 Tailwind 유틸 충돌 회피 */
+@keyframes anim-fx { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.anim-fx { transform-origin: left center; animation: anim-fx 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* A. 막대 솟아오름 (세로) */
+@keyframes anim-fy { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.anim-fy { transform-origin: bottom; animation: anim-fy 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* B. 차트 라인 그려짐 (SVG) */
+@keyframes anim-draw { to { stroke-dashoffset: 0; } }
+.anim-draw { stroke-dasharray: 2600; stroke-dashoffset: 2600; animation: anim-draw 1.6s ease-out forwards; }

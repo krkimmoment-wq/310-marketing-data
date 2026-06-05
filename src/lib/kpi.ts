@@ -24,6 +24,7 @@ export type Kpi = {
   projectedFinal: number;
   ddayLabel: string;
   insights: Insight[];
+  timeline: { date: string; label: string; dday: number; status: "past" | "today" | "upcoming" }[];
 };
 
 const KST_TODAY = () => {
@@ -40,19 +41,38 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
   const { data: cohort } = await sb.from("cohorts").select("*").eq("name", cohortName).single();
   if (!cohort) return null;
 
-  const [{ data: regs }, { data: ads }, { data: revs }] = await Promise.all([
-    sb.from("registrations").select("section, payment, is_refund").eq("cohort_id", cohort.id),
+  const [{ data: regs }, { data: ads }] = await Promise.all([
+    sb.from("registrations").select("section, payment, is_refund, is_transfer, amount").eq("cohort_id", cohort.id),
     sb.from("ad_spend").select("cost").eq("cohort_id", cohort.id),
-    sb.from("revenue").select("total_paid").eq("cohort_id", cohort.id),
   ]);
 
-  const real = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund);
+  const real = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer);
   const bySection: Record<string, number> = {};
-  for (const r of real) bySection[r.section] = (bySection[r.section] ?? 0) + 1;
-
   const totalAd = (ads ?? []).reduce((s, a) => s + (a.cost ?? 0), 0);
-  const totalRevenue = (revs ?? []).reduce((s, r) => s + (r.total_paid ?? 0), 0);
-  const realRegs = real.length;
+
+  let realRegs: number;
+  let totalRevenue: number;
+  if (real.length > 0) {
+    // 개별 명단 있는 기수(14기~): registrations 기준
+    for (const r of real) bySection[r.section] = (bySection[r.section] ?? 0) + 1;
+    realRegs = real.length;
+    totalRevenue = real.reduce((s, r) => s + (r.amount ?? 0), 0); // 등록 금액 합
+  } else {
+    // 명단 없는 완주 기수(13기): cohort_daily 누적 + revenue 테이블로 집계
+    const [{ data: daily }, { data: revs }] = await Promise.all([
+      sb.from("cohort_daily").select("section, new_count, refund_count").eq("cohort_id", cohort.id),
+      sb.from("revenue").select("total_paid").eq("cohort_id", cohort.id),
+    ]);
+    let cum = 0;
+    for (const d of daily ?? []) {
+      const net = (d.new_count ?? 0) - (d.refund_count ?? 0);
+      cum += net;
+      const sec = (d.section ?? "").replace(/\s/g, ""); // "1차 EB" → "1차EB"
+      bySection[sec] = (bySection[sec] ?? 0) + net;
+    }
+    realRegs = cum;
+    totalRevenue = (revs ?? []).reduce((s, r) => s + (r.total_paid ?? 0), 0);
+  }
   const roas = totalAd ? Math.round((totalRevenue / totalAd) * 10) / 10 : 0;
   const cac = realRegs ? Math.round(totalAd / realRegs) : 0;
   const progressPct = cohort.goal ? Math.round((realRegs / cohort.goal) * 1000) / 10 : 0;
@@ -88,6 +108,29 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
     }
   }
 
+  // 8분기점 타임라인 (대시보드 일정 표시용)
+  const timelineMs: [string | null, string][] = [
+    [cohort.pre_open, "사전등록"],
+    [cohort.eb1_open, "1차 EB"],
+    [cohort.eb1_close, "1차 마감"],
+    [cohort.eb2_open, "2차 EB"],
+    [cohort.eb2_close, "2차 마감"],
+    [cohort.reg_open, "정규"],
+    [cohort.reg_close, "정규 마감"],
+    [cohort.ended_at, "종료"],
+  ];
+  const timeline = timelineMs
+    .filter(([d]) => d)
+    .map(([d, label]) => {
+      const dd = diffDays(new Date(d + "T00:00:00Z"), today);
+      return {
+        date: d as string,
+        label,
+        dday: dd,
+        status: (dd < 0 ? "past" : dd === 0 ? "today" : "upcoming") as "past" | "today" | "upcoming",
+      };
+    });
+
   // 자동 인사이트 브리핑 (규칙 기반)
   const insights: Insight[] = [];
   insights.push({
@@ -112,6 +155,6 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
     cohortName: cohort.name, goal: cohort.goal, realRegs, progressPct,
     totalAd, totalRevenue, roas, cac, bySection,
     preOpen: cohort.pre_open, eb1Open: cohort.eb1_open, endedAt: cohort.ended_at,
-    daysElapsed, daysLeft, currentPace, requiredPace, projectedFinal, ddayLabel, insights,
+    daysElapsed, daysLeft, currentPace, requiredPace, projectedFinal, ddayLabel, insights, timeline,
   };
 }

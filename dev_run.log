@@ -1,0 +1,37 @@
+
+> 310-workspace@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.45.8:3000
+- Environments: .env.local
+✓ Ready in 363ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+ GET /cohorts?cohort=14%EA%B8%B0 200 in 720ms (next.js: 210ms, proxy.ts: 220ms, application-code: 289ms)
+ GET /?cohort=14%EA%B8%B0 200 in 404ms (next.js: 27ms, proxy.ts: 41ms, application-code: 336ms)
+ GET /api/brief 200 in 1215ms (next.js: 106ms, proxy.ts: 45ms, application-code: 1065ms)
+ GET /api/brief 200 in 499ms (next.js: 4ms, proxy.ts: 44ms, application-code: 451ms)
+ GET /registrations?cohort=14%EA%B8%B0 200 in 201ms (next.js: 29ms, proxy.ts: 61ms, application-code: 111ms)
+ GET /ad-spend?cohort=14%EA%B8%B0 200 in 136ms (next.js: 22ms, proxy.ts: 30ms, application-code: 84ms)
+ GET /sns?cohort=14%EA%B8%B0 200 in 211ms (next.js: 26ms, proxy.ts: 29ms, application-code: 156ms)
+ GET /calendar?cohort=14%EA%B8%B0 200 in 223ms (next.js: 26ms, proxy.ts: 63ms, application-code: 134ms)
+ GET /compare?cohort=14%EA%B8%B0 200 in 411ms (next.js: 31ms, proxy.ts: 68ms, application-code: 312ms)
+ GET /?cohort=14%EA%B8%B0 200 in 397ms (next.js: 6ms, proxy.ts: 76ms, application-code: 315ms)
+ GET /api/brief 200 in 597ms (next.js: 4ms, proxy.ts: 33ms, application-code: 560ms)
+ GET /api/brief 200 in 471ms (next.js: 3ms, proxy.ts: 51ms, application-code: 416ms)
+ GET /compare?cohort=14%EA%B8%B0 200 in 435ms (next.js: 5ms, proxy.ts: 83ms, application-code: 347ms)
+ GET /?cohort=14%EA%B8%B0 200 in 380ms (next.js: 4ms, proxy.ts: 70ms, application-code: 307ms)
+ GET /api/brief 200 in 591ms (next.js: 3ms, proxy.ts: 30ms, application-code: 558ms)
+ GET /api/brief 200 in 479ms (next.js: 2ms, proxy.ts: 35ms, application-code: 441ms)
+ GET /?cohort=14%EA%B8%B0 200 in 439ms (next.js: 7ms, proxy.ts: 35ms, application-code: 397ms)
+ GET /api/brief 200 in 465ms (next.js: 3ms, proxy.ts: 34ms, application-code: 428ms)
+ GET /?cohort=14%EA%B8%B0 200 in 436ms (next.js: 3ms, proxy.ts: 73ms, application-code: 359ms)
+ GET /api/brief 200 in 548ms (next.js: 3ms, proxy.ts: 39ms, application-code: 506ms)
+ GET /?cohort=14%EA%B8%B0 200 in 354ms (next.js: 4ms, proxy.ts: 31ms, application-code: 319ms)
+ GET /api/brief 200 in 444ms (next.js: 3ms, proxy.ts: 39ms, application-code: 403ms)
+ GET /compare?cohort=14%EA%B8%B0 200 in 325ms (next.js: 3ms, proxy.ts: 33ms, application-code: 290ms)
+ GET /login 200 in 106ms (next.js: 45ms, proxy.ts: 4ms, application-code: 58ms)
+ GET /login 200 in 35ms (next.js: 3ms, proxy.ts: 3ms, application-code: 30ms)
+ GET /login 200 in 41ms (next.js: 6ms, proxy.ts: 5ms, application-code: 30ms)

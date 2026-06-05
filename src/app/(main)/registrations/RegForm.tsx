@@ -7,6 +7,14 @@ import { createClient } from "@/lib/supabase/client";
 const SECTIONS = ["사전등록", "1차EB", "대기1", "2차EB", "대기2", "정규", "추가"];
 const SNS = ["", "유튜브", "인스타", "네이버TV", "틱톡"];
 
+// 구간별 자동 세팅 가격 (대기1·대기2·추가는 케이스별이라 수동 입력 → 매핑 없음)
+const PRICE: Record<string, number> = {
+  사전등록: 870000, // 1차 얼리버드와 동일
+  "1차EB": 870000, // 1차 얼리버드
+  "2차EB": 960000, // 2차 얼리버드
+  정규: 1050000, // 정가
+};
+
 export default function RegForm({ cohortId }: { cohortId?: number }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -18,10 +26,16 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
     channel: "kakao_direct",
     sns_channel: "",
     payment: "입금완료",
+    amount: PRICE["1차EB"], // 기본 구간(1차EB)의 가격
   });
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  // 구간 변경 시 매핑된 가격이 있으면 금액 자동 세팅 (대기·추가는 비워 수동 입력)
+  function setSection(section: string) {
+    setForm((f) => ({ ...f, section, amount: PRICE[section] ?? 0 }));
   }
 
   async function submit(e: React.FormEvent) {
@@ -37,6 +51,7 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
       channel: form.channel,
       sns_channel: form.sns_channel || null,
       payment: form.payment,
+      amount: Number(form.amount) || 0,
     });
     setSaving(false);
     if (error) {
@@ -85,13 +100,24 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
           <span className="text-slate-500">구간</span>
           <select
             value={form.section}
-            onChange={(e) => set("section", e.target.value)}
+            onChange={(e) => setSection(e.target.value)}
             className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
           >
             {SECTIONS.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
+        </label>
+        <label className="text-sm">
+          <span className="text-slate-500">
+            금액 (원){PRICE[form.section] == null && <span className="text-amber-500"> · 직접 입력</span>}
+          </span>
+          <input
+            type="number"
+            value={form.amount}
+            onChange={(e) => set("amount", Number(e.target.value))}
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+          />
         </label>
         <label className="text-sm">
           <span className="text-slate-500">채널</span>
