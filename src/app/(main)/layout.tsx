@@ -1,6 +1,7 @@
 import Sidebar from "@/components/Sidebar";
 import FloatingChat from "@/components/FloatingChat";
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,10 @@ export default async function MainLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const sb = await createClient();
+  // 인증 가드 (Next 16 middleware Vercel 404 버그 회피 — middleware 대신 layout에서 보호)
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) redirect("/login");
+
   const { data: cohorts } = await sb.from("cohorts").select("id,name").order("id");
 
   return (
