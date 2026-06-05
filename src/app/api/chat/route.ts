@@ -2,7 +2,7 @@
 // Gemini 2.5 Flash (무료). 멀티턴 대화 지원.
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
-import { getKpi } from "@/lib/kpi";
+import { buildFullContext } from "@/lib/context";
 
 export const dynamic = "force-dynamic";
 
@@ -16,18 +16,8 @@ export async function POST(req: Request) {
   const question: string = body.question ?? "";
   if (!question.trim()) return NextResponse.json({ answer: "" });
 
-  const kpi = await getKpi("14기");
-
-  // 실시간 데이터를 시스템 지시문에 주입 (질문할 때마다 최신)
-  const dataContext = kpi
-    ? `현재 14기 운영 데이터 (실시간):
-- 실등록: ${kpi.realRegs}명 / 목표 ${kpi.goal}명 (${kpi.progressPct}%)
-- ROAS: ${kpi.roas}배 / 매출 ₩${kpi.totalRevenue.toLocaleString("ko-KR")} / 광고비 ₩${kpi.totalAd.toLocaleString("ko-KR")}
-- CAC: ₩${kpi.cac.toLocaleString("ko-KR")}
-- 현재 페이스 ${kpi.currentPace}명/일 / 필요 ${kpi.requiredPace}명/일 / 예상 최종 ${kpi.projectedFinal}명
-- 다음 분기점: ${kpi.ddayLabel}
-- 구간별 실등록: ${Object.entries(kpi.bySection).map(([k, v]) => `${k} ${v}명`).join(", ") || "사전등록만"}`
-    : "현재 데이터를 불러올 수 없습니다.";
+  // 상세 데이터 컨텍스트 (KPI + 등록자 명단 + 광고 + 매출 + 콘텐츠 + 비틀리)
+  const dataContext = await buildFullContext("14기");
 
   const SYSTEM = `당신은 "310 다이어트 클래스"의 베테랑 그로스 마케터 AI 어시스턴트입니다.
 박민수(마케팅 플래너)의 질문에 답합니다.
