@@ -25,12 +25,31 @@ const sectionRank = (s: string) => {
   return i === -1 ? 99 : i;
 };
 
+const PAY_OPTS = ["전체", "홈페이지", "유튜브", "기타"];
+const STATUS_OPTS = ["전체", "입금완료", "미입금", "환불", "기수이전"];
+const CH_OPTS: { v: string; label: string }[] = [
+  { v: "전체", label: "전체 채널" },
+  { v: "kakao_direct", label: "🅱️ 카카오" },
+  { v: "tally", label: "🅰️ Tally" },
+];
+const selCls = "px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-sm outline-none focus:border-blue-500";
+
 export default function RegList({ regs }: { regs: Reg[] }) {
   const [q, setQ] = useState("");
+  const [pay, setPay] = useState("전체");
+  const [status, setStatus] = useState("전체");
+  const [ch, setCh] = useState("전체");
   const kw = q.trim().toLowerCase();
 
+  // 드롭다운 필터 (AND) → 그 다음 검색어
+  const base = regs.filter(
+    (r) =>
+      (pay === "전체" || (r.pay_platform ?? "홈페이지") === pay) &&
+      (status === "전체" || statusOf(r) === status) &&
+      (ch === "전체" || r.channel === ch)
+  );
   const filtered = kw
-    ? regs.filter((r) =>
+    ? base.filter((r) =>
         [
           r.name,
           r.section,
@@ -44,7 +63,7 @@ export default function RegList({ regs }: { regs: Reg[] }) {
           .toLowerCase()
           .includes(kw)
       )
-    : regs;
+    : base;
 
   // 구간별 그룹 (캠페인 흐름순, 구간 내부는 등록일순)
   const groups = SECTION_ORDER.map((sec) => {
@@ -56,29 +75,38 @@ export default function RegList({ regs }: { regs: Reg[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="relative max-w-sm">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="이름·구간·SNS·채널 검색…"
-          className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
-        />
-        {q && (
-          <button
-            onClick={() => setQ("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            title="검색 지우기"
-          >
-            ✕
-          </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="이름·구간·SNS 검색…"
+            className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+          />
+          {q && (
+            <button onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" title="검색 지우기">✕</button>
+          )}
+        </div>
+        <select value={pay} onChange={(e) => setPay(e.target.value)} className={selCls} title="결제처 필터">
+          {PAY_OPTS.map((p) => <option key={p} value={p}>{p === "전체" ? "💳 전체 결제처" : p}</option>)}
+        </select>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className={selCls} title="상태 필터">
+          {STATUS_OPTS.map((s) => <option key={s} value={s}>{s === "전체" ? "전체 상태" : s}</option>)}
+        </select>
+        <select value={ch} onChange={(e) => setCh(e.target.value)} className={selCls} title="채널 필터">
+          {CH_OPTS.map((c) => <option key={c.v} value={c.v}>{c.label}</option>)}
+        </select>
+        {(pay !== "전체" || status !== "전체" || ch !== "전체" || q) && (
+          <button onClick={() => { setPay("전체"); setStatus("전체"); setCh("전체"); setQ(""); }}
+            className="px-3 py-2.5 rounded-lg border border-slate-300 text-slate-500 text-sm hover:bg-slate-50">필터 초기화</button>
         )}
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-100 font-bold text-slate-700">
           등록자 목록 ({filtered.length}
-          {kw && filtered.length !== regs.length ? ` / 전체 ${regs.length}` : ""}명)
+          {filtered.length !== regs.length ? ` / 전체 ${regs.length}` : ""}명)
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
