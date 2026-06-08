@@ -117,7 +117,8 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
     [cohort.eb2_close, "2차 마감"],
     [cohort.reg_open, "정규"],
     [cohort.reg_close, "정규 마감"],
-    [cohort.ended_at, "종료"],
+    [cohort.ended_at, "모집종료"],
+    [cohort.class_start, "클래스 시작"],
   ];
   const timeline = timelineMs
     .filter(([d]) => d)

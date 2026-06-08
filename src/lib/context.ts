@@ -2,6 +2,7 @@
 // KPI 요약 + 등록자 명단 + 콘텐츠 + 광고 + 매출 + 비틀리 전체를 AI에게 제공
 import { createClient } from "@/lib/supabase/server";
 import { getKpi } from "@/lib/kpi";
+import { getDayComparison } from "@/lib/comparison";
 
 export async function buildFullContext(cohortName = "14기"): Promise<string> {
   const sb = await createClient();
@@ -35,12 +36,22 @@ export async function buildFullContext(cohortName = "14기"): Promise<string> {
     ctx += `실등록 ${kpi.realRegs}명/목표 ${kpi.goal}명(${kpi.progressPct}%), ROAS ${kpi.roas}배, 매출 ${won(kpi.totalRevenue)}, 광고비 ${won(kpi.totalAd)}, CAC ${won(kpi.cac)}, 현재페이스 ${kpi.currentPace}명/일(필요 ${kpi.requiredPace}), 예상최종 ${kpi.projectedFinal}명, 다음분기점 ${kpi.ddayLabel}\n`;
   }
 
-  // 기수 비교 (상대 기수)
+  // 기수 비교 (상대 기수) — 같은 D-Day(클래스 시작) 시점 누적으로 비교
   if (kpi && otherKpi) {
+    const cmp = await getDayComparison([cohortName, otherName]);
+    const meDay = cmp?.series.find((s) => s.name === cohortName)?.lastDay ?? null;
+    const atDay = (name: string) =>
+      meDay != null ? cmp?.series.find((s) => s.name === name)?.points.find((p) => p.x === meDay)?.y ?? null : null;
+    const sameMe = atDay(cohortName);
+    const sameOther = atDay(otherName);
+
     ctx += `\n## 기수 비교 (${cohortName} vs ${otherName})\n`;
-    ctx += `- ${cohortName}: 실등록 ${kpi.realRegs} · 매출 ${won(kpi.totalRevenue)} · ROAS ${kpi.roas}배 · CAC ${won(kpi.cac)}\n`;
-    ctx += `- ${otherName}: 실등록 ${otherKpi.realRegs} · 매출 ${won(otherKpi.totalRevenue)} · ROAS ${otherKpi.roas}배 · CAC ${won(otherKpi.cac)}\n`;
-    ctx += `(${otherName}는 완주 기수일 수 있어 누적값이 큼 — 같은 시점 비교가 핵심)\n`;
+    if (meDay != null && sameMe != null && sameOther != null) {
+      ctx += `★같은 D${meDay >= 0 ? "+" : ""}${meDay} 시점(클래스 시작 기준) 누적 등록: ${cohortName} ${sameMe}명 vs ${otherName} ${sameOther}명\n`;
+      ctx += `→ 진척률·페이스·우열·전환 비교는 **반드시 이 '같은 시점' 값**(${otherName} ${sameOther}명)으로 하세요. ${otherName} 최종 누적(${otherKpi.realRegs}명)과 비교하면 안 됩니다(완주 vs 진행중 오류).\n`;
+    }
+    ctx += `- ${cohortName}: 현재 실등록 ${kpi.realRegs} · 매출 ${won(kpi.totalRevenue)} · ROAS ${kpi.roas}배 · CAC ${won(kpi.cac)}\n`;
+    ctx += `- ${otherName}: 최종(완주) 실등록 ${otherKpi.realRegs} · ROAS ${otherKpi.roas}배 · CAC ${won(otherKpi.cac)} ← 효율(ROAS·CAC)만 참고, 등록수는 같은시점 값 사용\n`;
   }
 
   // 등록자 명단 (개별)
