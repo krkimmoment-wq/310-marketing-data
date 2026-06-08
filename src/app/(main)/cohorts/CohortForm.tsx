@@ -13,7 +13,8 @@ const DATE_FIELDS: { key: string; label: string }[] = [
   { key: "reg_open", label: "정규 오픈" },
   { key: "reg_close", label: "정규 마감" },
   { key: "extra_close", label: "추가 마감" },
-  { key: "ended_at", label: "기수 종료" },
+  { key: "ended_at", label: "모집 종료" },
+  { key: "class_start", label: "클래스 시작 (D-Day 기준)" },
 ];
 
 export default function CohortForm() {

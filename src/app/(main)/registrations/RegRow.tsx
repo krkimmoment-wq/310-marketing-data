@@ -83,6 +83,19 @@ export default function RegRow({ r }: { r: Reg }) {
     router.refresh();
   }
 
+  async function remove() {
+    if (!confirm(`등록자 "${r.name}"를 삭제할까요?\n(환불·기수이전이면 삭제 대신 상태 수정을 권장합니다)`)) return;
+    setSaving(true);
+    const sb = createClient();
+    const { error } = await sb.from("registrations").delete().eq("id", r.id);
+    setSaving(false);
+    if (error) {
+      alert("삭제 실패: " + error.message);
+      return;
+    }
+    router.refresh();
+  }
+
   function cancel() {
     setForm({
       name: r.name,
@@ -115,6 +128,13 @@ export default function RegRow({ r }: { r: Reg }) {
             className="px-2.5 py-1 rounded border border-slate-300 text-slate-600 text-xs hover:bg-slate-100"
           >
             ✏️ 수정
+          </button>
+          <button
+            onClick={remove}
+            disabled={saving}
+            className="ml-1 px-2.5 py-1 rounded border border-rose-200 text-rose-500 text-xs hover:bg-rose-50 disabled:opacity-50"
+          >
+            🗑️
           </button>
         </td>
       </tr>

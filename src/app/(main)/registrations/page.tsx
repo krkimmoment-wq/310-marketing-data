@@ -4,9 +4,14 @@ import RegList from "./RegList";
 
 export const dynamic = "force-dynamic";
 
-export default async function RegistrationsPage() {
+export default async function RegistrationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cohort?: string }>;
+}) {
+  const { cohort: cohortName } = await searchParams;
   const sb = await createClient();
-  const { data: cohort } = await sb.from("cohorts").select("id").eq("name", "14기").single();
+  const { data: cohort } = await sb.from("cohorts").select("id").eq("name", cohortName ?? "14기").single();
   const { data: regs } = await sb
     .from("registrations")
     .select("*")
@@ -29,7 +34,7 @@ export default async function RegistrationsPage() {
 
   return (
     <div className="bg-slate-50 min-h-screen p-6 md:p-8 space-y-6">
-      <h1 className="text-2xl font-extrabold text-slate-800">📝 14기 등록 관리</h1>
+      <h1 className="text-2xl font-extrabold text-slate-800">📝 {cohortName ?? "14기"} 등록 관리</h1>
 
       {/* 결제 플랫폼별 매출 요약 */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">

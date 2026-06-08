@@ -4,10 +4,16 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { buildFullContext } from "@/lib/context";
 import { withRetry } from "@/lib/gemini";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  // 인증 가드 — 비로그인 호출 차단
+  const sbAuth = await createClient();
+  const { data: { user } } = await sbAuth.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized", answer: "" }, { status: 401 });
+
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY 미설정" }, { status: 200 });
   }

@@ -42,6 +42,11 @@ const SYSTEM_PROMPT = `당신은 "310 다이어트 클래스"의 베테랑 그�
 JSON 배열만 출력. 코드블록(\`\`\`)·다른 텍스트 금지.`;
 
 export async function GET() {
+  // 인증 가드 — 비로그인 호출 차단 (Gemini 키 소진·컨텍스트 유출 방지)
+  const sbAuth = await createClient();
+  const { data: { user } } = await sbAuth.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized", insights: [] }, { status: 401 });
+
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY 미설정", insights: [] });
   }
