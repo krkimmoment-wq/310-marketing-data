@@ -5,6 +5,23 @@ import { NextResponse } from "next/server";
 import { getKpi } from "@/lib/kpi";
 import { getDayComparison } from "@/lib/comparison";
 import { withRetry } from "@/lib/gemini";
+import { createClient } from "@/lib/supabase/server";
+
+// 브리핑 + 핵심지표를 그날치로 저장 (히스토리·추세용). 실패해도 브리핑엔 영향 없음
+async function saveHistory(insights: { tone: string; text: string }[], metrics: Record<string, number>) {
+  try {
+    const sb = await createClient();
+    const { data: c } = await sb.from("cohorts").select("id").eq("name", "14기").single();
+    if (!c) return;
+    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    await sb.from("brief_history").upsert(
+      { cohort_id: c.id, snapshot_date: today, insights, metrics },
+      { onConflict: "cohort_id,snapshot_date" }
+    );
+  } catch {
+    /* 히스토리 저장 실패는 무시 (브리핑 자체는 정상 반환) */
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +93,15 @@ ${
       insights = [{ tone: "info", text: raw.slice(0, 200) }];
     }
 
+    await saveHistory(insights, {
+      realRegs: kpi.realRegs,
+      progressPct: kpi.progressPct,
+      roas: kpi.roas,
+      cac: kpi.cac,
+      currentPace: kpi.currentPace,
+      projectedFinal: kpi.projectedFinal,
+      sameOther: v13same ?? 0,
+    });
     return NextResponse.json({ insights, model: "gemini-2.5-flash" });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI 브리핑 생성 실패";
