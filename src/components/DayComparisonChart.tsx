@@ -1,6 +1,8 @@
 "use client";
 // 13기 vs 14기 Day(D-Day)별 누적등록 비교 — 자비스 네온 SVG 라인차트
 // 라이브러리 없이 순수 SVG (기존 바차트와 동일 기조)
+// 마우스 hover → 세로 가이드 + 그 Day의 13기/14기 누적·차이·분기점·액션 툴팁
+import { useRef, useState } from "react";
 import type { DayComparison } from "@/lib/comparison";
 
 const W = 820;
@@ -12,7 +14,7 @@ const PLOT_H = H - PAD.t - PAD.b;
 const niceCeil = (v: number, step = 20) => Math.max(step, Math.ceil(v / step) * step);
 
 export default function DayComparisonChart({ data }: { data: DayComparison }) {
-  const { minDay, maxDay, series, milestones, actions } = data;
+  const { minDay, maxDay, series, milestones, actions, todayDay } = data;
   const maxY = niceCeil(data.maxY);
   const spanX = Math.max(1, maxDay - minDay);
   const inRange = (d: number) => d >= minDay && d <= maxDay;
@@ -21,6 +23,24 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
 
   const xOf = (d: number) => PAD.l + ((d - minDay) / spanX) * PLOT_W;
   const yOf = (v: number) => PAD.t + (1 - v / maxY) * PLOT_H;
+
+  const svgRef = useRef<SVGSVGElement>(null);
+  // hover: 마우스가 가리키는 day + 화면 픽셀 위치(툴팁 배치용)
+  const [hover, setHover] = useState<{ day: number; px: number; py: number } | null>(null);
+
+  function onMove(e: React.MouseEvent<SVGSVGElement>) {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const svgX = (px / rect.width) * W; // viewBox 좌표로 환산
+    let day = Math.round(minDay + ((svgX - PAD.l) / PLOT_W) * spanX);
+    day = Math.max(minDay, Math.min(maxDay, day));
+    setHover({ day, px, py: e.clientY - rect.top });
+  }
+
+  const valOf = (name: string, day: number) =>
+    series.find((s) => s.name === name)?.points.find((p) => p.x === day)?.y ?? null;
 
   // x축 눈금 (10일 간격, 0 포함)
   const xTicks: number[] = [];
@@ -76,7 +96,9 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
         </div>
       )}
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img"
+      <div className="relative">
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full" role="img"
+        onMouseMove={onMove} onMouseLeave={() => setHover(null)}
         aria-label="13기 14기 D-Day별 누적 등록 비교 라인차트">
         <defs>
           {series.map((s) => (
@@ -173,7 +195,78 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
               </g>
             );
           })}
+
+        {/* 오늘 세로선 (KST 기준) */}
+        {todayDay != null && inRange(todayDay) && (
+          <g>
+            <line x1={xOf(todayDay)} y1={PAD.t} x2={xOf(todayDay)} y2={H - PAD.b}
+              stroke="#fb7185" strokeWidth={1.2} strokeDasharray="4 3" opacity={0.85} />
+            <text x={xOf(todayDay)} y={H - PAD.b + 26} textAnchor="middle" fontSize={9}
+              fill="#fb7185" fontFamily="monospace" fontWeight="bold">오늘</text>
+          </g>
+        )}
+
+        {/* hover 세로 가이드 + 두 기수 강조점 */}
+        {hover && (
+          <g pointerEvents="none">
+            <line x1={xOf(hover.day)} y1={PAD.t} x2={xOf(hover.day)} y2={H - PAD.b}
+              stroke="#e2e8f0" strokeWidth={1} strokeDasharray="2 3" opacity={0.5} />
+            {series.map((s) => {
+              const v = s.points.find((p) => p.x === hover.day)?.y;
+              if (v == null) return null;
+              return <circle key={s.name} cx={xOf(hover.day)} cy={yOf(v)} r={4.5}
+                fill="#070b16" stroke={s.color} strokeWidth={2.5} />;
+            })}
+          </g>
+        )}
       </svg>
+
+      {/* hover 툴팁 박스 (운영 대시보드 방식) */}
+      {hover && (() => {
+        const v14 = valOf("14기", hover.day);
+        const v13 = valOf("13기", hover.day);
+        const diff = v14 != null && v13 != null ? v14 - v13 : null;
+        const ms = milestones.find((m) => m.day === hover.day);
+        const act = actions.find((a) => a.day === hover.day);
+        const isToday = todayDay != null && hover.day === todayDay;
+        // 오른쪽 끝에서는 왼쪽으로 펼침
+        const flip = hover.px > 360;
+        return (
+          <div
+            className="absolute z-20 pointer-events-none rounded-lg border border-slate-600/70 bg-slate-900/95 px-3 py-2 shadow-xl backdrop-blur-sm"
+            style={{
+              left: flip ? undefined : hover.px + 14,
+              right: flip ? `calc(100% - ${hover.px - 14}px)` : undefined,
+              top: Math.max(0, hover.py - 10),
+              minWidth: 168,
+            }}
+          >
+            <div className="font-hud text-cyan-300 text-xs font-bold mb-1.5">
+              D{hover.day >= 0 ? "+" : ""}{hover.day}
+              {isToday && <span className="ml-1 text-rose-300">(오늘)</span>}
+              {ms && <span className="ml-1 text-amber-300">· {ms.label}</span>}
+            </div>
+            <div className="space-y-0.5 text-[11px]">
+              <div className="flex justify-between gap-4">
+                <span className="text-amber-300/90">13기 누적</span>
+                <span className="font-hud text-amber-200">{v13 != null ? `${v13}명` : "—"}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-cyan-300/90">14기 누적</span>
+                <span className="font-hud text-cyan-200">{v14 != null ? `${v14}명` : "⏳ 진행 전"}</span>
+              </div>
+              <div className="flex justify-between gap-4 border-t border-slate-700 mt-1 pt-1">
+                <span className="text-slate-400">차이</span>
+                <span className={`font-hud font-bold ${diff == null ? "text-slate-500" : diff >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                  {diff == null ? "—" : `${diff >= 0 ? "+" : ""}${diff}명`}
+                </span>
+              </div>
+            </div>
+            {act && <div className="mt-1.5 text-[10px] text-orange-300 max-w-[200px]">📌 {act.text}</div>}
+          </div>
+        );
+      })()}
+      </div>
 
       <div className="text-[10px] text-slate-500 mt-1 text-right font-mono">
         x = D-Day(1차 EB OPEN) 기준 상대일 · y = 누적 등록 (14기=실등록 실시간, 13기=집계)

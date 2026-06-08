@@ -22,6 +22,7 @@ export type DayComparison = {
   series: DaySeries[];
   milestones: Milestone[];
   actions: DayAction[];
+  todayDay: number | null; // 오늘(KST)의 day_num — 14기 1차 EB OPEN 기준
 };
 
 // cohort 이름 → 색상 (14기 = 현재/시안, 13기 = 지난 기수/앰버)
@@ -85,6 +86,14 @@ export async function getDayComparison(
   const c14 = cohorts.find((c) => c.name === "14기");
   const milestones: Milestone[] = [];
   const actions: DayAction[] = [];
+  let todayDay: number | null = null;
+  if (c14?.eb1_open) {
+    const eb1ms = new Date(c14.eb1_open + "T00:00:00Z").getTime();
+    // 오늘(KST) day_num
+    const nowKst = new Date(Date.now() + 9 * 3600 * 1000);
+    const todayUtc = new Date(nowKst.toISOString().slice(0, 10) + "T00:00:00Z").getTime();
+    todayDay = Math.round((todayUtc - eb1ms) / 86400000);
+  }
   if (c14?.eb1_open) {
     const eb1 = new Date(c14.eb1_open + "T00:00:00Z").getTime();
     const toDay = (d: string) =>
@@ -112,5 +121,5 @@ export async function getDayComparison(
     }
   }
 
-  return { minDay: globalMin, maxDay, maxY, series, milestones, actions };
+  return { minDay: globalMin, maxDay, maxY, series, milestones, actions, todayDay };
 }
