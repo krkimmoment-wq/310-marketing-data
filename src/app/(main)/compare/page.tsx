@@ -1,5 +1,6 @@
 import { getKpi } from "@/lib/kpi";
 import { getDayComparison } from "@/lib/comparison";
+import { sectionDailyRows } from "@/lib/daily";
 import { createClient } from "@/lib/supabase/server";
 import DayComparisonChart from "@/components/DayComparisonChart";
 import CompareSelector from "./CompareSelector";
@@ -68,16 +69,18 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   const aId = list.find((c) => c.name === aName)?.id;
   const bId = list.find((c) => c.name === bName)?.id;
 
-  const [a, b, cmp, { data: sections }, { data: daily }] = await Promise.all([
+  const [a, b, cmp, { data: sections }, aRows, bRows] = await Promise.all([
     getKpi(aName),
     getKpi(bName),
     getDayComparison([aName, bName]),
     sb.from("bitly_section").select("*"),
-    sb.from("cohort_daily").select("cohort_id, section, new_count, refund_count, date"),
+    aId ? sectionDailyRows(sb, aId) : Promise.resolve([]),
+    bId ? sectionDailyRows(sb, bId) : Promise.resolve([]),
   ]);
 
   const secRows = (sections ?? []) as Row[];
-  const dayRows = (daily ?? []) as Row[];
+  // 등록관리 연동: 각 기수 registrations 있으면 그걸로, 없으면 cohort_daily (sectionDailyRows 내부 분기)
+  const dayRows = [...aRows, ...bRows] as Row[];
   const won = (n: number) => "₩" + n.toLocaleString("ko-KR");
 
   const metrics = a && b ? [

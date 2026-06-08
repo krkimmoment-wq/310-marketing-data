@@ -32,3 +32,39 @@ export async function cohortDailyRows(sb: SupabaseClient, cohortId: number): Pro
     .order("date");
   return (data ?? []) as DailyRow[];
 }
+
+// 구간별·날짜별 순등록 행 — 비교 화면(구간별 일평균·전환율)용
+// registrations 있으면 그걸로(등록관리 연동), 없으면 cohort_daily 집계
+export type SectionDailyRow = {
+  cohort_id: number;
+  section: string;
+  new_count: number;
+  refund_count: number;
+  date: string;
+};
+
+export async function sectionDailyRows(sb: SupabaseClient, cohortId: number): Promise<SectionDailyRow[]> {
+  const { data: regs } = await sb
+    .from("registrations")
+    .select("reg_date, section, payment, is_refund, is_transfer")
+    .eq("cohort_id", cohortId);
+
+  if (regs && regs.length > 0) {
+    // 실등록 1명 = 1행. 구간·날짜는 dailyAvg/전환율 쪽에서 집계
+    return regs
+      .filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer && r.reg_date)
+      .map((r) => ({
+        cohort_id: cohortId,
+        section: r.section ?? "",
+        new_count: 1,
+        refund_count: 0,
+        date: r.reg_date as string,
+      }));
+  }
+
+  const { data } = await sb
+    .from("cohort_daily")
+    .select("cohort_id, section, new_count, refund_count, date")
+    .eq("cohort_id", cohortId);
+  return (data ?? []) as SectionDailyRow[];
+}
