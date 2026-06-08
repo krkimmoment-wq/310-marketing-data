@@ -24,10 +24,14 @@ export type TallyChannel = { channel: string; count: number; pct: number };
 export type SectionChannel = { key: string; label: string; color: string; clicks: number; pct: number };
 export type BitlySection = { section: string; total: number; channels: SectionChannel[]; top: string };
 
+// 주간 스냅샷 원본 (날짜별 채널 구독자) — 수정/삭제용
+export type Snapshot = { date: string; values: Record<string, number> };
+
 export type SnsData = {
   channels: SnsChannel[];
   dates: string[];
   weeks: WeekRow[];
+  snapshots: Snapshot[];
   kakao: KakaoDay[];
   bitly: BitlyDay[];
   bitlyTotal: number;
@@ -131,5 +135,11 @@ export async function getSnsData(cohortName = "14기"): Promise<SnsData | null> 
     return { date: d, cells };
   });
 
-  return { channels, dates, weeks, kakao: kakaoRows ?? [], bitly, bitlyTotal, tallyChannels, sections };
+  // 주간 스냅샷 원본 (최근 날짜가 위로) — 수정/삭제용
+  const snapshots: Snapshot[] = [...dates].reverse().map((d) => ({
+    date: d,
+    values: Object.fromEntries(rows.filter((r) => r.snapshot_date === d).map((r) => [r.channel, r.followers])),
+  }));
+
+  return { channels, dates, weeks, snapshots, kakao: kakaoRows ?? [], bitly, bitlyTotal, tallyChannels, sections };
 }

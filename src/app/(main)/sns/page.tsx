@@ -1,6 +1,15 @@
 import { getSnsData } from "@/lib/sns";
 import SnsTrendChart from "@/components/SnsTrendChart";
 import SnsForm from "./SnsForm";
+import SnsSnapshotRow from "./SnsSnapshotRow";
+
+const SNAPSHOT_CHANNELS = [
+  { key: "youtube", label: "유튜브" },
+  { key: "instagram", label: "인스타" },
+  { key: "tiktok", label: "틱톡" },
+  { key: "navertv", label: "네이버TV" },
+  { key: "kakao", label: "카카오" },
+];
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +39,7 @@ export default async function SnsPage({
     );
   }
 
-  const { channels, dates, weeks, kakao, bitly, bitlyTotal, tallyChannels, sections } = data;
+  const { channels, dates, weeks, snapshots, kakao, bitly, bitlyTotal, tallyChannels, sections } = data;
   const weeksDesc = [...weeks].reverse(); // 최근 주가 위로
   const maxClicks = Math.max(1, ...bitly.map((b) => b.clicks));
   const TALLY_COLOR: Record<string, string> = {
@@ -55,6 +64,38 @@ export default async function SnsPage({
       {/* 주간 스냅샷 입력 */}
       <div className="mb-6">
         <SnsForm />
+      </div>
+
+      {/* 주간 스냅샷 관리 (수정·삭제) */}
+      <div className="jarvis-card p-5 mb-6">
+        <div className="font-hud text-xs uppercase tracking-[0.25em] text-cyan-400/80 mb-3">
+          주간 스냅샷 관리 (입력값 수정·삭제)
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
+            <thead className="text-slate-400 text-left">
+              <tr>
+                <th className="py-1.5 pr-4">날짜</th>
+                {SNAPSHOT_CHANNELS.map((c) => (
+                  <th key={c.key} className="py-1.5 px-3 text-right">{c.label}</th>
+                ))}
+                <th className="py-1.5 pl-3">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshots.map((s) => (
+                <SnsSnapshotRow key={s.date} date={s.date} values={s.values} />
+              ))}
+              {snapshots.length === 0 && (
+                <tr>
+                  <td colSpan={SNAPSHOT_CHANNELS.length + 2} className="py-6 text-center text-slate-500">
+                    스냅샷이 없습니다. 위에서 추가하세요.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Bitly 클릭 추이 + Tally 채널 인입 */}

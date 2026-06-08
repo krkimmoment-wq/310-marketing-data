@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import CohortForm from "./CohortForm";
+import CohortRow from "./CohortRow";
 
 export const dynamic = "force-dynamic";
 
@@ -30,19 +31,12 @@ export default async function CohortsPage() {
                 <th className="px-4 py-2 text-left">2차 EB</th>
                 <th className="px-4 py-2 text-left">정규</th>
                 <th className="px-4 py-2 text-left">종료</th>
+                <th className="px-4 py-2 text-left">관리</th>
               </tr>
             </thead>
             <tbody>
               {list.map((c) => (
-                <tr key={c.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2 font-bold text-slate-800">{c.name}</td>
-                  <td className="px-4 py-2 text-slate-600">{c.goal ?? "-"}명</td>
-                  <td className="px-4 py-2 text-slate-600">{c.pre_open ?? "-"}</td>
-                  <td className="px-4 py-2 text-slate-600">{c.eb1_open ?? "-"}</td>
-                  <td className="px-4 py-2 text-slate-600">{c.eb2_open ?? "-"}</td>
-                  <td className="px-4 py-2 text-slate-600">{c.reg_open ?? "-"}</td>
-                  <td className="px-4 py-2 text-slate-600">{c.ended_at ?? "-"}</td>
-                </tr>
+                <CohortRow key={c.id} c={c} />
               ))}
             </tbody>
           </table>

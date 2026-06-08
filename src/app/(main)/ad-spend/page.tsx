@@ -1,13 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import AdForm from "./AdForm";
-import EditableNumberCell from "@/components/EditableNumberCell";
+import AdRow from "./AdRow";
 
 export const dynamic = "force-dynamic";
-
-const PLATFORM_LABEL: Record<string, string> = {
-  youtube: "▶️ 유튜브",
-  instagram: "📷 인스타",
-};
 
 export default async function AdSpendPage({
   searchParams,
@@ -53,33 +48,16 @@ export default async function AdSpendPage({
                 <th className="px-4 py-2 text-left">노출</th>
                 <th className="px-4 py-2 text-left">조회/도달</th>
                 <th className="px-4 py-2 text-left">클릭/방문</th>
+                <th className="px-4 py-2 text-left">관리</th>
               </tr>
             </thead>
             <tbody>
               {list.map((a) => (
-                <tr key={a.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2 text-slate-700">{PLATFORM_LABEL[a.platform] ?? a.platform}</td>
-                  <td className="px-4 py-2 text-slate-600 max-w-xs truncate" title={a.campaign ?? ""}>
-                    {a.campaign ?? "-"}
-                  </td>
-                  <td className="px-4 py-2 text-slate-600">{a.period_start ?? "-"}</td>
-                  <td className="px-4 py-2 font-medium">
-                    <EditableNumberCell table="ad_spend" id={a.id} field="cost" value={a.cost ?? 0} />
-                  </td>
-                  <td className="px-4 py-2 text-slate-600">
-                    <EditableNumberCell table="ad_spend" id={a.id} field="impressions" value={a.impressions ?? 0} suffix="" />
-                  </td>
-                  <td className="px-4 py-2 text-slate-600">
-                    <EditableNumberCell table="ad_spend" id={a.id} field="views" value={a.views ?? 0} suffix="" />
-                  </td>
-                  <td className="px-4 py-2 text-slate-600">
-                    <EditableNumberCell table="ad_spend" id={a.id} field="clicks" value={a.clicks ?? 0} suffix="" />
-                  </td>
-                </tr>
+                <AdRow key={a.id} a={a} />
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                     광고비 내역이 없습니다. 위에서 추가하세요.
                   </td>
                 </tr>
