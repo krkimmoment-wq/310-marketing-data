@@ -4,8 +4,8 @@ import { useRef, useState } from "react";
 import type { DayPoint } from "@/app/(main)/insights/page";
 
 const W = 880;
-const H = 320;
-const PAD = { l: 34, r: 14, t: 20, b: 46 };
+const H = 340;
+const PAD = { l: 34, r: 14, t: 20, b: 64 };
 const PLOT_W = W - PAD.l - PAD.r;
 const PLOT_H = H - PAD.t - PAD.b;
 
@@ -36,8 +36,15 @@ export default function YtRegChart({ days }: { days: DayPoint[] }) {
 
   return (
     <div className="jarvis-card p-5">
-      <div className="font-hud text-xs uppercase tracking-[0.25em] text-cyan-400/80 mb-3">
-        일별 등록(막대) · ▶ YouTube 발행
+      <div className="flex items-center justify-between mb-3">
+        <div className="font-hud text-xs uppercase tracking-[0.25em] text-cyan-400/80">
+          일별 등록(막대) · YouTube 발행
+        </div>
+        <div className="flex gap-3 text-[11px]">
+          <span className="text-cyan-300">▮ 등록</span>
+          <span className="text-rose-300">● 롱폼</span>
+          <span className="text-purple-300">● 숏폼</span>
+        </div>
       </div>
       <div className="relative">
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full"
@@ -57,18 +64,32 @@ export default function YtRegChart({ days }: { days: DayPoint[] }) {
             <rect key={i} x={xOf(i) - bw * 0.32} y={yOf(d.regs)} width={bw * 0.64} height={PAD.t + PLOT_H - yOf(d.regs)}
               rx={1.5} className="anim-fy" style={{ transformOrigin: "bottom", fill: "#00e5ff", opacity: 0.85 }} />
           ))}
-          {/* 발행 마커 ▶ (그날 영상 있으면 x축 위) */}
-          {days.map((d, i) => d.videos.length > 0 && (
-            <g key={`v${i}`} style={{ cursor: "help" }}>
-              <circle cx={xOf(i)} cy={H - PAD.b + 14} r={7} fill="#ff5e57" stroke="#070b16" strokeWidth={1.5} />
-              <text x={xOf(i)} y={H - PAD.b + 17} textAnchor="middle" fontSize={7} fill="#fff" fontWeight="bold">
-                {d.videos.length > 1 ? d.videos.length : "▶"}
-              </text>
+          {/* 발행 마커 — 롱폼(빨강)·숏폼(보라) 2레인 */}
+          {[
+            { y: H - PAD.b + 13, color: "#ff5e57", icon: "▶", is: (k: string) => k !== "숏폼" },
+            { y: H - PAD.b + 30, color: "#a855f7", icon: "⚡", is: (k: string) => k === "숏폼" },
+          ].map((lane, li) => (
+            <g key={li}>
+              {days.map((d, i) => {
+                const cnt = d.videos.filter((v) => lane.is(v.kind)).length;
+                if (cnt === 0) return null;
+                return (
+                  <g key={i} style={{ cursor: "help" }}>
+                    <circle cx={xOf(i)} cy={lane.y} r={6.5} fill={lane.color} stroke="#070b16" strokeWidth={1.3} />
+                    <text x={xOf(i)} y={lane.y + 3} textAnchor="middle" fontSize={7} fill="#fff" fontWeight="bold">
+                      {cnt > 1 ? cnt : lane.icon}
+                    </text>
+                  </g>
+                );
+              })}
             </g>
           ))}
+          {/* 레인 라벨 */}
+          <text x={4} y={H - PAD.b + 16} fontSize={8} fill="#ff5e57" fontFamily="monospace">롱</text>
+          <text x={4} y={H - PAD.b + 33} fontSize={8} fill="#a855f7" fontFamily="monospace">숏</text>
           {/* x축 날짜 */}
           {ticks.map((i) => (
-            <text key={i} x={xOf(i)} y={H - 6} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily="monospace">
+            <text key={i} x={xOf(i)} y={H - 5} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily="monospace">
               {days[i].date.slice(5)}
             </text>
           ))}
@@ -91,10 +112,11 @@ export default function YtRegChart({ days }: { days: DayPoint[] }) {
                 <div className="text-[10px] text-slate-500">발행 영상 없음</div>
               ) : (
                 <div className="space-y-1 border-t border-slate-700 pt-1">
-                  <div className="text-[10px] text-rose-300">▶ 발행 {d.videos.length}건</div>
-                  {d.videos.slice(0, 4).map((v, j) => (
+                  <div className="text-[10px] text-slate-400">발행 {d.videos.length}건</div>
+                  {d.videos.slice(0, 5).map((v, j) => (
                     <div key={j} className="text-[10px] text-slate-300 leading-snug">
-                      · {v.title.slice(0, 28)}{v.title.length > 28 ? "…" : ""} <span className="text-slate-500">({v.views.toLocaleString("ko-KR")}회)</span>
+                      <span className={v.kind === "숏폼" ? "text-purple-300" : "text-rose-300"}>{v.kind === "숏폼" ? "⚡" : "▶"}</span>{" "}
+                      {v.title.slice(0, 24)}{v.title.length > 24 ? "…" : ""} <span className="text-slate-500">({v.views.toLocaleString("ko-KR")}회)</span>
                     </div>
                   ))}
                 </div>

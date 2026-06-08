@@ -12,7 +12,7 @@ const DARK_BG: React.CSSProperties = {
 export type DayPoint = {
   date: string;
   regs: number;
-  videos: { title: string; views: number }[];
+  videos: { title: string; views: number; kind: string }[];
 };
 
 export default async function InsightsPage({
@@ -30,17 +30,17 @@ export default async function InsightsPage({
 
   const [{ data: regs }, { data: yts }] = await Promise.all([
     sb.from("registrations").select("reg_date, payment, is_refund, is_transfer").eq("cohort_id", co?.id),
-    sb.from("yt_video").select("pub_date, title, views").eq("cohort_id", co?.id).order("pub_date"),
+    sb.from("yt_video").select("pub_date, title, views, kind").eq("cohort_id", co?.id).order("pub_date"),
   ]);
 
   // 일별 집계
   const real = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer && r.reg_date);
   const regBy: Record<string, number> = {};
   for (const r of real) regBy[r.reg_date] = (regBy[r.reg_date] ?? 0) + 1;
-  const vidBy: Record<string, { title: string; views: number }[]> = {};
+  const vidBy: Record<string, { title: string; views: number; kind: string }[]> = {};
   for (const v of yts ?? []) {
     if (!v.pub_date) continue;
-    (vidBy[v.pub_date] ||= []).push({ title: v.title ?? "", views: v.views ?? 0 });
+    (vidBy[v.pub_date] ||= []).push({ title: v.title ?? "", views: v.views ?? 0, kind: v.kind ?? "롱폼" });
   }
 
   // 날짜축: pre_open ~ 오늘(KST)
@@ -56,6 +56,8 @@ export default async function InsightsPage({
 
   const totalReg = real.length;
   const totalVid = (yts ?? []).length;
+  const shortN = (yts ?? []).filter((v) => v.kind === "숏폼").length;
+  const longN = totalVid - shortN;
   const totalViews = (yts ?? []).reduce((s, v) => s + (v.views ?? 0), 0);
 
   return (
@@ -71,7 +73,7 @@ export default async function InsightsPage({
 
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="jarvis-card p-4"><div className="text-[11px] text-slate-400">기간 실등록</div><div className="font-hud text-2xl font-black text-cyan-300 mt-1">{totalReg}명</div></div>
-        <div className="jarvis-card p-4"><div className="text-[11px] text-slate-400">발행 영상</div><div className="font-hud text-2xl font-black text-white mt-1">{totalVid}개</div></div>
+        <div className="jarvis-card p-4"><div className="text-[11px] text-slate-400">발행 영상</div><div className="font-hud text-2xl font-black text-white mt-1">{totalVid}개</div><div className="text-[11px] mt-0.5"><span className="text-rose-300">▶롱폼 {longN}</span> · <span className="text-purple-300">⚡숏폼 {shortN}</span></div></div>
         <div className="jarvis-card p-4"><div className="text-[11px] text-slate-400">영상 누적 조회</div><div className="font-hud text-2xl font-black text-white mt-1">{totalViews.toLocaleString("ko-KR")}</div></div>
       </div>
 
