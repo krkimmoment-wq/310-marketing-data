@@ -3,6 +3,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { buildFullContext } from "@/lib/context";
+import { withRetry } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ ${dataContext}
       }));
     contents.push({ role: "user", parts: [{ text: question }] });
 
-    const result = await model.generateContent({ contents });
+    const result = await withRetry(() => model.generateContent({ contents }));
     const answer = result.response.text().trim();
     return NextResponse.json({ answer });
   } catch (e) {

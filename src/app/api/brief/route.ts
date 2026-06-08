@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { getKpi } from "@/lib/kpi";
 import { getDayComparison } from "@/lib/comparison";
+import { withRetry } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ ${
       model: "gemini-2.5-flash",
       systemInstruction: SYSTEM_PROMPT,
     });
-    const result = await model.generateContent(dataBlock);
+    const result = await withRetry(() => model.generateContent(dataBlock));
     let raw = result.response.text().trim();
     // 코드블록 감싸기 제거
     raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
