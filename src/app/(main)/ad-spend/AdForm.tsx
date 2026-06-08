@@ -48,8 +48,8 @@ export default function AdForm({ cohortId }: { cohortId?: number }) {
     if (error) {
       alert("저장 실패: " + error.message);
     } else {
+      // 연속 입력: 폼 유지하고 입력값만 비움
       setForm((f) => ({ ...f, campaign: "", cost: 0, impressions: 0, views: 0, clicks: 0, landing_views: 0 }));
-      setOpen(false);
       router.refresh();
     }
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 type Msg = { role: "user" | "ai"; text: string };
 
@@ -10,9 +11,9 @@ const DARK_BG: React.CSSProperties = {
 };
 
 const SUGGESTIONS = [
-  "지금 14기 상황 한 줄로 요약해줘",
+  "지금 상황 한 줄로 요약해줘",
   "이번 페이스로 목표 달성 가능해?",
-  "13기랑 비교하면 어때?",
+  "지난 기수랑 비교하면 어때?",
   "지금 가장 시급한 액션 3개는?",
 ];
 
@@ -21,6 +22,8 @@ export default function AssistantPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const sp = useSearchParams();
+  const cohort = sp.get("cohort") || "14기";
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,7 +39,7 @@ export default function AssistantPage() {
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, history }),
+        body: JSON.stringify({ question: text, history, cohort }),
       });
       const d = await r.json();
       setMsgs((m) => [...m, { role: "ai", text: d.answer || d.error || "(응답 없음)" }]);
@@ -52,7 +55,7 @@ export default function AssistantPage() {
         <h1 className="font-hud text-2xl font-black tracking-widest jarvis-glow jarvis-neon">
           AI 어시스턴트
         </h1>
-        <p className="text-sm text-slate-400 mt-1">실시간 14기 데이터 기반 · 베테랑 마케터 AI</p>
+        <p className="text-sm text-slate-400 mt-1">실시간 {cohort} 데이터 기반 · 베테랑 마케터 AI</p>
       </div>
 
       {/* 대화 영역 */}
@@ -60,7 +63,7 @@ export default function AssistantPage() {
         {msgs.length === 0 && (
           <div className="text-center text-slate-400 py-8">
             <div className="text-4xl mb-3">🤖</div>
-            <p className="mb-4">14기 운영에 대해 무엇이든 물어보세요.</p>
+            <p className="mb-4">{cohort} 운영에 대해 무엇이든 물어보세요.</p>
             <div className="flex flex-wrap gap-2 justify-center">
               {SUGGESTIONS.map((s) => (
                 <button

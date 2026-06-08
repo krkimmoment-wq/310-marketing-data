@@ -99,8 +99,8 @@ body {
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 32px rgba(0, 229, 255, 1), 0 0 0 5px rgba(0, 229, 255, 0.28), inset 0 0 12px rgba(0, 229, 255, 0.5);
-    transform: scale(1.07);
+    box-shadow: 0 0 28px rgba(0, 229, 255, 1), 0 0 0 4px rgba(0, 229, 255, 0.28), inset 0 0 12px rgba(0, 229, 255, 0.5);
+    transform: scale(1.035);
   }
 }
 .today-glow {
@@ -122,3 +122,15 @@ body {
 /* B. 차트 라인 그려짐 (SVG) */
 @keyframes anim-draw { to { stroke-dashoffset: 0; } }
 .anim-draw { stroke-dasharray: 2600; stroke-dashoffset: 2600; animation: anim-draw 1.6s ease-out forwards; }
+
+/* 접근성 — 모션 최소화 선호 시 상시 애니메이션 정지 (당일 표시는 색으로 유지) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .today-glow { animation: none !important; box-shadow: 0 0 12px rgba(0, 229, 255, 0.8) !important; transform: none !important; }
+  .scanlines::before { display: none !important; }
+}

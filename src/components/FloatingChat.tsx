@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 type Msg = { role: "user" | "ai"; text: string };
 
@@ -17,6 +18,8 @@ export default function FloatingChat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const sp = useSearchParams();
+  const cohort = sp.get("cohort") || "14기";
 
   useEffect(() => {
     if (open) endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -32,7 +35,7 @@ export default function FloatingChat() {
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, history }),
+        body: JSON.stringify({ question: text, history, cohort }),
       });
       const d = await r.json();
       setMsgs((m) => [...m, { role: "ai", text: d.answer || d.error || "(응답 없음)" }]);

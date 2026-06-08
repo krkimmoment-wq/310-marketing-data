@@ -60,8 +60,8 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
     if (error) {
       alert("저장 실패: " + error.message);
     } else {
+      // 연속 입력: 폼 유지하고 이름·SNS만 비움 (여러 명 연달아 등록)
       setForm((f) => ({ ...f, name: "", sns_channel: "" }));
-      setOpen(false);
       router.refresh(); // 목록·대시보드 즉시 갱신
     }
   }

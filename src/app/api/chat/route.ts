@@ -21,13 +21,14 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const history: { role: string; text: string }[] = body.history ?? [];
   const question: string = body.question ?? "";
+  const cohortName: string = body.cohort || "14기";
   if (!question.trim()) return NextResponse.json({ answer: "" });
 
-  // 상세 데이터 컨텍스트 (KPI + 등록자 명단 + 광고 + 매출 + 콘텐츠 + 비틀리)
-  const dataContext = await buildFullContext("14기");
+  // 상세 데이터 컨텍스트 (선택 기수 기준 — KPI + 등록자 명단 + 광고 + 매출 + 콘텐츠 + 비틀리)
+  const dataContext = await buildFullContext(cohortName);
 
   const SYSTEM = `당신은 "310 다이어트 클래스"의 베테랑 그로스 마케터 AI 어시스턴트입니다.
-박민수(마케팅 플래너)의 질문에 답합니다.
+박민수(마케팅 플래너)의 질문에 답합니다. **현재 분석 대상 기수: ${cohortName}** (아래 데이터는 ${cohortName} 기준).
 
 성격·어조:
 - 검증된 베테랑. 결론 먼저, 근거는 그 다음. 회피·모호한 답변 금지.
