@@ -11,6 +11,7 @@ const NAV = [
   { href: "/ad-spend", label: "광고비", icon: "💸" },
   { href: "/sns", label: "SNS·채널", icon: "📡" },
   { href: "/calendar", label: "캘린더", icon: "📅" },
+  { href: "/content", label: "콘텐츠 기록", icon: "🎬" },
   { href: "/compare", label: "기수별 비교", icon: "⚖️" },
   { href: "/cohorts", label: "기수 관리", icon: "⚙️" },
 ];
