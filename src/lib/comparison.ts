@@ -1,5 +1,6 @@
 // 13기 vs 14기 Day(D-Day)별 비교 데이터
-// day_num = 1차 EB OPEN(D-Day) 기준 상대일 → 두 기수를 같은 출발선에 정렬
+// day_num = 클래스 시작일(class_start) 기준 상대일 → 두 기수를 클래스 시작 시점에 정렬
+// (14기 6/29, 13기 4/27. class_start 없으면 eb1_open으로 폴백)
 import { createClient } from "@/lib/supabase/server";
 import { cohortDailyRows } from "@/lib/daily";
 
@@ -22,7 +23,7 @@ export type DayComparison = {
   series: DaySeries[];
   milestones: Milestone[];
   actions: DayAction[];
-  todayDay: number | null; // 오늘(KST)의 day_num — 14기 1차 EB OPEN 기준
+  todayDay: number | null; // 오늘(KST)의 day_num — 14기 클래스 시작 기준
 };
 
 // cohort 이름 → 색상 (14기 = 현재/시안, 13기 = 지난 기수/앰버)
@@ -38,7 +39,7 @@ export async function getDayComparison(
 
   const { data: cohorts } = await sb
     .from("cohorts")
-    .select("id,name,pre_open,eb1_open,eb1_close,eb2_open,eb2_close,reg_open,reg_close,extra_close")
+    .select("id,name,pre_open,eb1_open,eb1_close,eb2_open,eb2_close,reg_open,reg_close,extra_close,class_start")
     .in("name", cohortNames);
   if (!cohorts || cohorts.length === 0) return null;
 
@@ -51,12 +52,14 @@ export async function getDayComparison(
     // registrations 있으면 등록관리 연동, 없으면 cohort_daily 집계
     const mine = await cohortDailyRows(sb, c.id);
     if (mine.length === 0) continue;
-    const eb1 = c.eb1_open ? new Date(c.eb1_open + "T00:00:00Z").getTime() : 0;
+    // 기준 = 클래스 시작일(없으면 1차 EB OPEN 폴백)
+    const baseStr = c.class_start ?? c.eb1_open;
+    const base = baseStr ? new Date(baseStr + "T00:00:00Z").getTime() : 0;
 
-    // day_num(1차 EB OPEN 기준)별 순증감 합산
+    // day_num(클래스 시작 기준)별 순증감 합산
     const agg = new Map<number, number>();
     for (const r of mine) {
-      const dayNum = Math.round((new Date(r.date + "T00:00:00Z").getTime() - eb1) / 86400000);
+      const dayNum = Math.round((new Date(r.date + "T00:00:00Z").getTime() - base) / 86400000);
       agg.set(dayNum, (agg.get(dayNum) ?? 0) + (r.new_count ?? 0) - (r.refund_count ?? 0));
     }
     const days = [...agg.keys()].sort((a, b) => a - b);
@@ -82,22 +85,23 @@ export async function getDayComparison(
 
   const maxDay = Math.max(...series.map((s) => s.lastDay));
 
-  // 14기 기준 분기점·액션 (day_num = 1차 EB OPEN 기준)
+  // 14기 기준 분기점·액션 (day_num = 클래스 시작 기준)
   const c14 = cohorts.find((c) => c.name === "14기");
   const milestones: Milestone[] = [];
   const actions: DayAction[] = [];
   let todayDay: number | null = null;
-  if (c14?.eb1_open) {
-    const eb1ms = new Date(c14.eb1_open + "T00:00:00Z").getTime();
+  const base14Str = c14?.class_start ?? c14?.eb1_open;
+  if (base14Str) {
+    const base14ms = new Date(base14Str + "T00:00:00Z").getTime();
     // 오늘(KST) day_num
     const nowKst = new Date(Date.now() + 9 * 3600 * 1000);
     const todayUtc = new Date(nowKst.toISOString().slice(0, 10) + "T00:00:00Z").getTime();
-    todayDay = Math.round((todayUtc - eb1ms) / 86400000);
+    todayDay = Math.round((todayUtc - base14ms) / 86400000);
   }
-  if (c14?.eb1_open) {
-    const eb1 = new Date(c14.eb1_open + "T00:00:00Z").getTime();
+  if (c14 && base14Str) {
+    const base14 = new Date(base14Str + "T00:00:00Z").getTime();
     const toDay = (d: string) =>
-      Math.round((new Date(d + "T00:00:00Z").getTime() - eb1) / 86400000);
+      Math.round((new Date(d + "T00:00:00Z").getTime() - base14) / 86400000);
     const ms: [string | null, string][] = [
       [c14.pre_open, "사전"],
       [c14.eb1_open, "1차EB"],
@@ -106,7 +110,8 @@ export async function getDayComparison(
       [c14.eb2_close, "2차마감"],
       [c14.reg_open, "정규"],
       [c14.reg_close, "정규마감"],
-      [c14.extra_close, "종료"],
+      [c14.extra_close, "모집종료"],
+      [c14.class_start, "클래스시작"],
     ];
     for (const [d, label] of ms) {
       if (d) milestones.push({ day: toDay(d), label });

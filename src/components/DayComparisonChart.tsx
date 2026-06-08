@@ -85,7 +85,7 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
 
       {summary && (
         <div className="text-[12px] text-slate-300 mb-2">
-          같은 <span className="font-hud text-cyan-300">D+{summary.day}</span> 시점 ·
+          같은 <span className="font-hud text-cyan-300">D{summary.day >= 0 ? "+" : ""}{summary.day}</span> 시점 ·
           14기 <span className="font-hud text-cyan-300">{summary.a}</span> vs
           13기 <span className="font-hud text-amber-300"> {summary.b}</span> →{" "}
           {summary.lead >= 0 ? (
@@ -138,14 +138,14 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
             </text>
           </g>
         ))}
-        {/* D-Day 주석 */}
+        {/* D-Day 주석 = 클래스 시작 */}
         <text x={xOf(0) + 4} y={PAD.t + 10} fontSize={9} fill="#22d3ee" fontFamily="monospace" opacity={0.8}>
-          1차 EB OPEN
+          클래스 시작
         </text>
 
-        {/* 분기점 세로선 (1차EB=0은 D-Day로 이미 표시) */}
+        {/* 분기점 세로선 (클래스시작=0은 D-Day축으로 이미 표시) */}
         {milestones
-          .filter((m) => inRange(m.day) && m.label !== "1차EB")
+          .filter((m) => inRange(m.day) && m.label !== "클래스시작")
           .map((m) => (
             <g key={m.label}>
               <line x1={xOf(m.day)} y1={PAD.t + 8} x2={xOf(m.day)} y2={H - PAD.b}
@@ -269,7 +269,7 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
       </div>
 
       <div className="text-[10px] text-slate-500 mt-1 text-right font-mono">
-        x = D-Day(1차 EB OPEN) 기준 상대일 · y = 누적 등록 (14기=실등록 실시간, 13기=집계)
+        x = D-Day(클래스 시작) 기준 상대일 · y = 누적 등록 (14기=실등록 실시간, 13기=집계)
       </div>
 
       {/* Day별 상세 표 (접기) */}
