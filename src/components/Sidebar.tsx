@@ -14,6 +14,7 @@ const NAV = [
   { href: "/calendar", label: "캘린더", icon: "📅" },
   { href: "/content", label: "콘텐츠 기록", icon: "🎬" },
   { href: "/compare", label: "기수별 비교", icon: "⚖️" },
+  { href: "/insights", label: "유입·전환 분석", icon: "🔬" },
   { href: "/brief-history", label: "브리핑 추세", icon: "📈" },
   { href: "/cohorts", label: "기수 관리", icon: "⚙️" },
 ];
