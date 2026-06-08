@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -23,6 +24,7 @@ export default function Sidebar({ cohorts = [] }: { cohorts?: { id: number; name
   const sp = useSearchParams();
   const cohort = sp.get("cohort") ?? cohorts[0]?.name ?? "";
   const q = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
+  const [open, setOpen] = useState(false); // 모바일 드로어
 
   async function logout() {
     const sb = createClient();
@@ -32,7 +34,23 @@ export default function Sidebar({ cohorts = [] }: { cohorts?: { id: number; name
   }
 
   return (
-    <aside className="w-56 shrink-0 bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+    <>
+    {/* 모바일 햄버거 */}
+    <button
+      onClick={() => setOpen(true)}
+      aria-label="메뉴 열기"
+      className="md:hidden fixed top-3 left-3 z-30 w-10 h-10 rounded-lg bg-slate-900/90 text-white flex items-center justify-center shadow-lg backdrop-blur"
+    >
+      ☰
+    </button>
+    {/* 모바일 오버레이 */}
+    {open && <div onClick={() => setOpen(false)} className="md:hidden fixed inset-0 bg-black/50 z-40" />}
+
+    <aside
+      className={`w-56 shrink-0 bg-slate-900 text-slate-100 min-h-screen flex flex-col
+        fixed md:static inset-y-0 left-0 z-50 transform transition-transform duration-200
+        ${open ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+    >
       <div className="p-5 border-b border-slate-700">
         <div className="font-extrabold text-lg">310 워크스페이스</div>
         <div className="text-xs text-slate-400 mt-0.5">모멘트핏 운영</div>
@@ -47,6 +65,7 @@ export default function Sidebar({ cohorts = [] }: { cohorts?: { id: number; name
             <Link
               key={n.href}
               href={`${n.href}${q}`}
+              onClick={() => setOpen(false)}
               className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
                 active ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800"
               }`}
@@ -63,5 +82,6 @@ export default function Sidebar({ cohorts = [] }: { cohorts?: { id: number; name
         🚪 로그아웃
       </button>
     </aside>
+    </>
   );
 }
