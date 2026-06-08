@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const SECTIONS = ["사전등록", "1차EB", "대기1", "2차EB", "대기2", "정규", "추가"];
 const SNS = ["", "유튜브", "인스타", "네이버TV", "틱톡"];
+const PAY_PLATFORMS = ["홈페이지", "유튜브", "기타"]; // 결제처 (매출 집계용 — 인입채널과 별개)
 
 // 구간별 자동 세팅 가격 (대기1·대기2·추가는 케이스별이라 수동 입력 → 매핑 없음)
 const PRICE: Record<string, number> = {
@@ -25,6 +26,7 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
     section: "1차EB",
     channel: "kakao_direct",
     sns_channel: "",
+    pay_platform: "홈페이지",
     payment: "입금완료",
     amount: PRICE["1차EB"], // 기본 구간(1차EB)의 가격
   });
@@ -50,6 +52,7 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
       section: form.section,
       channel: form.channel,
       sns_channel: form.sns_channel || null,
+      pay_platform: form.pay_platform,
       payment: form.payment,
       amount: Number(form.amount) || 0,
     });
@@ -141,6 +144,18 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
               <option key={s} value={s}>
                 {s || "(없음)"}
               </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="text-slate-500">결제 플랫폼</span>
+          <select
+            value={form.pay_platform}
+            onChange={(e) => set("pay_platform", e.target.value)}
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+          >
+            {PAY_PLATFORMS.map((p) => (
+              <option key={p}>{p}</option>
             ))}
           </select>
         </label>

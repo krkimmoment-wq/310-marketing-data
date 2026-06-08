@@ -7,6 +7,7 @@ import { statusOf } from "./StatusCell";
 
 const SECTIONS = ["사전등록", "1차EB", "대기1", "2차EB", "대기2", "정규", "추가"];
 const SNS = ["", "유튜브", "인스타", "네이버TV", "틱톡"];
+const PAY_PLATFORMS = ["홈페이지", "유튜브", "기타"];
 const STATUSES = ["입금완료", "미입금", "환불", "기수이전"];
 
 // 상태 → 컬럼 매핑
@@ -31,6 +32,7 @@ export type Reg = {
   amount: number | null;
   channel: string;
   sns_channel: string | null;
+  pay_platform?: string | null;
   payment: string;
   is_refund?: boolean;
   is_transfer?: boolean;
@@ -49,6 +51,7 @@ export default function RegRow({ r }: { r: Reg }) {
     amount: r.amount ?? 0,
     channel: r.channel,
     sns_channel: r.sns_channel ?? "",
+    pay_platform: r.pay_platform ?? "홈페이지",
     status: statusOf(r),
   });
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
@@ -67,6 +70,7 @@ export default function RegRow({ r }: { r: Reg }) {
         amount: Number(form.amount) || 0,
         channel: form.channel,
         sns_channel: form.sns_channel || null,
+        pay_platform: form.pay_platform,
         ...STATUS_MAP[form.status],
       })
       .eq("id", r.id);
@@ -87,6 +91,7 @@ export default function RegRow({ r }: { r: Reg }) {
       amount: r.amount ?? 0,
       channel: r.channel,
       sns_channel: r.sns_channel ?? "",
+      pay_platform: r.pay_platform ?? "홈페이지",
       status: statusOf(r),
     });
     setEditing(false);
@@ -102,6 +107,7 @@ export default function RegRow({ r }: { r: Reg }) {
         <td className="px-4 py-2 text-slate-700">{r.amount ? r.amount.toLocaleString("ko-KR") + "원" : "-"}</td>
         <td className="px-4 py-2 text-slate-600">{r.channel === "tally" ? "🅰️ Tally" : "🅱️ 카카오"}</td>
         <td className="px-4 py-2 text-slate-600">{r.sns_channel ?? "-"}</td>
+        <td className="px-4 py-2 text-slate-600">{r.pay_platform ?? "홈페이지"}</td>
         <td className={`px-4 py-2 font-medium ${st.cls}`}>{st.label}</td>
         <td className="px-4 py-2">
           <button
@@ -134,6 +140,11 @@ export default function RegRow({ r }: { r: Reg }) {
       <td className="px-3 py-2">
         <select value={form.sns_channel} onChange={(e) => set("sns_channel", e.target.value)} className={inputCls}>
           {SNS.map((s) => <option key={s} value={s}>{s || "(없음)"}</option>)}
+        </select>
+      </td>
+      <td className="px-3 py-2">
+        <select value={form.pay_platform} onChange={(e) => set("pay_platform", e.target.value)} className={inputCls}>
+          {PAY_PLATFORMS.map((p) => <option key={p}>{p}</option>)}
         </select>
       </td>
       <td className="px-3 py-2">

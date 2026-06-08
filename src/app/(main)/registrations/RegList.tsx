@@ -12,6 +12,7 @@ type Reg = {
   amount: number | null;
   channel: string;
   sns_channel: string | null;
+  pay_platform?: string | null;
   payment: string;
   is_refund?: boolean;
   is_transfer?: boolean;
@@ -35,6 +36,7 @@ export default function RegList({ regs }: { regs: Reg[] }) {
           r.section,
           r.sns_channel ?? "",
           r.channel === "tally" ? "tally 🅰" : "카카오 🅱",
+          r.pay_platform ?? "",
           statusOf(r),
           String(r.amount ?? ""),
         ]
@@ -88,6 +90,7 @@ export default function RegList({ regs }: { regs: Reg[] }) {
                 <th className="px-4 py-2 text-left">금액</th>
                 <th className="px-4 py-2 text-left">채널</th>
                 <th className="px-4 py-2 text-left">SNS</th>
+                <th className="px-4 py-2 text-left">결제처</th>
                 <th className="px-4 py-2 text-left">상태</th>
                 <th className="px-4 py-2 text-left">수정</th>
               </tr>
@@ -102,7 +105,7 @@ export default function RegList({ regs }: { regs: Reg[] }) {
                 return (
                   <Fragment key={sec}>
                     <tr className="bg-slate-100/80 border-t border-slate-200">
-                      <td colSpan={8} className="px-4 py-2 font-bold text-slate-700">
+                      <td colSpan={9} className="px-4 py-2 font-bold text-slate-700">
                         {sec}
                         <span className="ml-2 font-normal text-slate-500">
                           · {rows.length}명(입금 {realCount}) · 실매출 {subtotal.toLocaleString("ko-KR")}원
@@ -117,7 +120,7 @@ export default function RegList({ regs }: { regs: Reg[] }) {
               })}
               {groups.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                     {kw ? `"${q}" 검색 결과가 없습니다.` : "등록자가 없습니다. 위에서 추가하세요."}
                   </td>
                 </tr>
