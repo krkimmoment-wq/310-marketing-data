@@ -65,11 +65,11 @@ export default async function Dashboard({
       {/* D-Day 8분기점 타임라인 */}
       <div className="jarvis-card p-4 mb-6 fade-up" style={{ animationDelay: "0.08s" }}>
         <div className="font-hud text-[11px] uppercase tracking-[0.25em] text-cyan-400/70 mb-3">D-DAY 일정</div>
-        <div className="grid grid-cols-4 lg:grid-cols-8 gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {kpi.timeline.map((m) => (
             <div
               key={m.label}
-              className={`rounded-lg p-2 text-center border ${
+              className={`flex-shrink-0 min-w-[88px] flex-1 rounded-lg p-2 text-center border ${
                 m.status === "today"
                   ? "border-rose-400 bg-rose-500/10"
                   : m.status === "past"
