@@ -78,33 +78,33 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
   }
 
   return (
-    <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-      <div className="font-bold text-slate-700">신규 등록자 추가</div>
+    <form onSubmit={submit} className="jarvis-card p-5 space-y-4">
+      <div className="font-bold text-slate-200">신규 등록자 추가</div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <label className="text-sm">
-          <span className="text-slate-500">이름</span>
+          <span className="text-slate-400">이름</span>
           <input
             required
             value={form.name}
             onChange={(e) => set("name", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           />
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">등록일</span>
+          <span className="text-slate-400">등록일</span>
           <input
             type="date"
             value={form.reg_date}
             onChange={(e) => set("reg_date", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           />
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">구간</span>
+          <span className="text-slate-400">구간</span>
           <select
             value={form.section}
             onChange={(e) => setSection(e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           >
             {SECTIONS.map((s) => (
               <option key={s}>{s}</option>
@@ -112,33 +112,33 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
           </select>
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">
+          <span className="text-slate-400">
             금액 (원){PRICE[form.section] == null && <span className="text-amber-500"> · 직접 입력</span>}
           </span>
           <input
             type="number"
             value={form.amount}
             onChange={(e) => set("amount", Number(e.target.value))}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           />
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">채널</span>
+          <span className="text-slate-400">채널</span>
           <select
             value={form.channel}
             onChange={(e) => set("channel", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           >
             <option value="kakao_direct">🅱️ 카카오 직접</option>
             <option value="tally">🅰️ Tally</option>
           </select>
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">SNS 인입</span>
+          <span className="text-slate-400">SNS 인입</span>
           <select
             value={form.sns_channel}
             onChange={(e) => set("sns_channel", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           >
             {SNS.map((s) => (
               <option key={s} value={s}>
@@ -148,11 +148,11 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
           </select>
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">결제 플랫폼</span>
+          <span className="text-slate-400">결제 플랫폼</span>
           <select
             value={form.pay_platform}
             onChange={(e) => set("pay_platform", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           >
             {PAY_PLATFORMS.map((p) => (
               <option key={p}>{p}</option>
@@ -160,11 +160,11 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
           </select>
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">입금 상태</span>
+          <span className="text-slate-400">입금 상태</span>
           <select
             value={form.payment}
             onChange={(e) => set("payment", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           >
             <option>입금완료</option>
             <option>미입금</option>
@@ -182,7 +182,7 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"
+          className="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800"
         >
           취소
         </button>

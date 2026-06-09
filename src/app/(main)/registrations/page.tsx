@@ -4,6 +4,11 @@ import RegList from "./RegList";
 
 export const dynamic = "force-dynamic";
 
+const DARK_BG: React.CSSProperties = {
+  background:
+    "radial-gradient(1200px 600px at 80% -10%, rgba(0,229,255,0.10), transparent), radial-gradient(900px 500px at 0% 110%, rgba(59,130,246,0.10), transparent), #070b16",
+};
+
 export default async function RegistrationsPage({
   searchParams,
 }: {
@@ -33,15 +38,15 @@ export default async function RegistrationsPage({
   const won = (n: number) => n.toLocaleString("ko-KR");
 
   return (
-    <div className="bg-slate-50 min-h-screen p-6 md:p-8 space-y-6">
-      <h1 className="text-2xl font-extrabold text-slate-800">📝 {cohortName ?? "14기"} 등록 관리</h1>
+    <div style={DARK_BG} className="scanlines min-h-screen p-6 md:p-8 space-y-6 text-slate-100">
+      <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">📝 {cohortName ?? "14기"} 등록 관리</h1>
 
       {/* 결제 플랫폼별 매출 요약 */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 font-bold text-slate-700">💳 결제 플랫폼별 매출</div>
+      <div className="jarvis-card overflow-hidden">
+        <div className="px-5 py-3 border-b border-slate-800 font-bold text-slate-200">💳 결제 플랫폼별 매출</div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500">
+            <thead className="bg-slate-900/40 text-slate-400">
               <tr>
                 <th className="px-4 py-2 text-left">결제처</th>
                 <th className="px-4 py-2 text-right">매출액</th>
@@ -51,18 +56,18 @@ export default async function RegistrationsPage({
             </thead>
             <tbody>
               {platRows.map((p) => (
-                <tr key={p.plat} className="border-t border-slate-100">
-                  <td className="px-4 py-2 font-medium text-slate-700">{p.plat}</td>
-                  <td className="px-4 py-2 text-right text-slate-700">{won(p.gross)}원</td>
-                  <td className="px-4 py-2 text-right text-rose-500">{p.refund ? "-" + won(p.refund) : "0"}</td>
-                  <td className="px-4 py-2 text-right font-bold text-emerald-600">{won(p.net)}원</td>
+                <tr key={p.plat} className="border-t border-slate-800">
+                  <td className="px-4 py-2 font-medium text-slate-200">{p.plat}</td>
+                  <td className="px-4 py-2 text-right text-slate-200">{won(p.gross)}원</td>
+                  <td className="px-4 py-2 text-right text-rose-400">{p.refund ? "-" + won(p.refund) : "0"}</td>
+                  <td className="px-4 py-2 text-right font-bold text-emerald-300">{won(p.net)}원</td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold">
-                <td className="px-4 py-2 text-slate-800">총 합계</td>
-                <td className="px-4 py-2 text-right text-slate-800">{won(tot.gross)}원</td>
-                <td className="px-4 py-2 text-right text-rose-600">{tot.refund ? "-" + won(tot.refund) : "0"}</td>
-                <td className="px-4 py-2 text-right text-emerald-700">{won(tot.net)}원</td>
+              <tr className="border-t-2 border-slate-700 bg-slate-800/60 font-bold">
+                <td className="px-4 py-2 text-slate-100">총 합계</td>
+                <td className="px-4 py-2 text-right text-slate-100">{won(tot.gross)}원</td>
+                <td className="px-4 py-2 text-right text-rose-300">{tot.refund ? "-" + won(tot.refund) : "0"}</td>
+                <td className="px-4 py-2 text-right text-emerald-300">{won(tot.net)}원</td>
               </tr>
             </tbody>
           </table>

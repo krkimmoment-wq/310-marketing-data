@@ -18,10 +18,10 @@ const STATUS_MAP: Record<string, { payment: string; is_refund: boolean; is_trans
   기수이전: { payment: "입금완료", is_refund: false, is_transfer: true },
 };
 const STATUS_VIEW: Record<string, { label: string; cls: string }> = {
-  입금완료: { label: "✅ 입금", cls: "text-emerald-600" },
-  미입금: { label: "⏳ 미입금", cls: "text-amber-600" },
-  환불: { label: "↩️ 환불", cls: "text-rose-600" },
-  기수이전: { label: "🔄 기수이전", cls: "text-slate-500" },
+  입금완료: { label: "✅ 입금", cls: "text-emerald-300" },
+  미입금: { label: "⏳ 미입금", cls: "text-amber-300" },
+  환불: { label: "↩️ 환불", cls: "text-rose-300" },
+  기수이전: { label: "🔄 기수이전", cls: "text-slate-400" },
 };
 
 export type Reg = {
@@ -38,7 +38,7 @@ export type Reg = {
   is_transfer?: boolean;
 };
 
-const inputCls = "w-full px-2 py-1 rounded border border-blue-300 outline-none focus:border-blue-500 text-xs";
+const inputCls = "w-full px-2 py-1 rounded bg-slate-900/60 border border-slate-700 text-slate-100 outline-none focus:border-cyan-400 text-xs";
 
 export default function RegRow({ r }: { r: Reg }) {
   const router = useRouter();
@@ -113,26 +113,26 @@ export default function RegRow({ r }: { r: Reg }) {
   if (!editing) {
     const st = STATUS_VIEW[statusOf(r)];
     return (
-      <tr className="border-t border-slate-100">
-        <td className="px-4 py-2 font-medium text-slate-800">{r.name}</td>
-        <td className="px-4 py-2 text-slate-600">{r.reg_date}</td>
-        <td className="px-4 py-2 text-slate-600">{r.section}</td>
-        <td className="px-4 py-2 text-slate-700">{r.amount ? r.amount.toLocaleString("ko-KR") + "원" : "-"}</td>
-        <td className="px-4 py-2 text-slate-600">{r.channel === "tally" ? "🅰️ Tally" : "🅱️ 카카오"}</td>
-        <td className="px-4 py-2 text-slate-600">{r.sns_channel ?? "-"}</td>
-        <td className="px-4 py-2 text-slate-600">{r.pay_platform ?? "홈페이지"}</td>
+      <tr className="border-t border-slate-800">
+        <td className="px-4 py-2 font-medium text-slate-100">{r.name}</td>
+        <td className="px-4 py-2 text-slate-300">{r.reg_date}</td>
+        <td className="px-4 py-2 text-slate-300">{r.section}</td>
+        <td className="px-4 py-2 text-slate-200">{r.amount ? r.amount.toLocaleString("ko-KR") + "원" : "-"}</td>
+        <td className="px-4 py-2 text-slate-300">{r.channel === "tally" ? "🅰️ Tally" : "🅱️ 카카오"}</td>
+        <td className="px-4 py-2 text-slate-300">{r.sns_channel ?? "-"}</td>
+        <td className="px-4 py-2 text-slate-300">{r.pay_platform ?? "홈페이지"}</td>
         <td className={`px-4 py-2 font-medium ${st.cls}`}>{st.label}</td>
         <td className="px-4 py-2">
           <button
             onClick={() => setEditing(true)}
-            className="px-2.5 py-1 rounded border border-slate-300 text-slate-600 text-xs hover:bg-slate-100"
+            className="px-2.5 py-1 rounded border border-slate-600 text-slate-300 text-xs hover:bg-slate-800"
           >
             ✏️ 수정
           </button>
           <button
             onClick={remove}
             disabled={saving}
-            className="ml-1 px-2.5 py-1 rounded border border-rose-200 text-rose-500 text-xs hover:bg-rose-50 disabled:opacity-50"
+            className="ml-1 px-2.5 py-1 rounded border border-rose-500/30 text-rose-300 text-xs hover:bg-rose-500/10 disabled:opacity-50"
           >
             🗑️
           </button>
@@ -142,7 +142,7 @@ export default function RegRow({ r }: { r: Reg }) {
   }
 
   return (
-    <tr className="border-t border-blue-200 bg-blue-50/40">
+    <tr className="border-t border-cyan-500/30 bg-cyan-500/5">
       <td className="px-3 py-2"><input value={form.name} onChange={(e) => set("name", e.target.value)} className={inputCls} /></td>
       <td className="px-3 py-2"><input type="date" value={form.reg_date} onChange={(e) => set("reg_date", e.target.value)} className={inputCls} /></td>
       <td className="px-3 py-2">
@@ -176,7 +176,7 @@ export default function RegRow({ r }: { r: Reg }) {
         <button onClick={save} disabled={saving} className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-bold disabled:opacity-50">
           {saving ? "..." : "저장"}
         </button>
-        <button onClick={cancel} className="ml-1 px-2 py-1 rounded border border-slate-300 text-slate-500 text-xs">취소</button>
+        <button onClick={cancel} className="ml-1 px-2 py-1 rounded border border-slate-600 text-slate-300 text-xs">취소</button>
       </td>
     </tr>
   );
