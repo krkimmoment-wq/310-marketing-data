@@ -6,7 +6,9 @@ function Bar({ mix, accent }: { mix: TrafficMix; accent: boolean }) {
     <div>
       <div className="flex justify-between text-sm mb-1.5">
         <span className={accent ? "text-cyan-300 font-bold" : "text-amber-300 font-bold"}>{mix.name}</span>
-        <span className="text-slate-400 text-xs">{mix.start.slice(5)}~{mix.end.slice(5)} · 총 {mix.total.toLocaleString("ko-KR")} 조회</span>
+        <span className="text-slate-400 text-xs">
+          {mix.start.slice(5)}~{mix.end.slice(5)} ({mix.days}일) · <b className="text-slate-300">일평균 {mix.perDay.toLocaleString("ko-KR")}</b> (총 {mix.total.toLocaleString("ko-KR")})
+        </span>
       </div>
       <div className="flex h-7 rounded-lg overflow-hidden bg-slate-800 anim-fx">
         {mix.rows.filter((r) => r.pct >= 1).map((r) => (

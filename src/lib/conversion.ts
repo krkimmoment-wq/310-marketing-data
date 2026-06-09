@@ -18,7 +18,10 @@ const SEC: { key: string; s: keyof Cohort; e: keyof Cohort; bitly: string }[] = 
   { key: "추가", s: "reg_close", e: "ended_at", bitly: "추가등록" },
 ];
 
-export type FunnelStage = { views: number; clicks: number; regs: number; conv: number | null }; // conv = 등록/클릭 %
+export type FunnelStage = { views: number; viewsPerDay: number; days: number; clicks: number; regs: number; conv: number | null }; // conv = 등록/클릭 %
+
+const dayCount = (start: string, end: string) =>
+  Math.max(1, Math.round((new Date(end + "T00:00:00Z").getTime() - new Date(start + "T00:00:00Z").getTime()) / 86400000) + 1);
 export type FunnelRow = { section: string; a: FunnelStage; b: FunnelStage };
 export type ConversionFunnel = { aName: string; bName: string; rows: FunnelRow[] } | null;
 
@@ -61,10 +64,12 @@ export async function getConversionFunnel(curName = "14기"): Promise<Conversion
     (dailyAll ?? []).filter((d) => d.cohort_id === cid && (d.section ?? "").replace(/\s/g, "") === sec).reduce((acc, d) => acc + ((d.new_count ?? 0) - (d.refund_count ?? 0)), 0);
 
   const stage = (c: Cohort, isCur: boolean, sec: (typeof SEC)[number]): FunnelStage => {
+    const st = c[sec.s] as string | null, en = c[sec.e] as string | null;
+    const days = st && en ? dayCount(st, en) : 1;
     const views = ytViews(c, sec.s, sec.e);
     const clicks = clicksOf(c.id, sec.bitly);
     const regs = isCur ? regsCurBy(sec.key) : regsDailyBy(c.id, sec.key);
-    return { views, clicks, regs, conv: clicks ? Math.round((regs / clicks) * 1000) / 10 : null };
+    return { views, viewsPerDay: Math.round(views / days), days, clicks, regs, conv: clicks ? Math.round((regs / clicks) * 1000) / 10 : null };
   };
 
   const rows: FunnelRow[] = SEC.map((sec) => ({

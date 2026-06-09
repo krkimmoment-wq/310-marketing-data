@@ -13,7 +13,10 @@ const SRC: Record<string, { label: string; color: string; intent: "high" | "algo
 const OTHER = { label: "기타", color: "#475569", intent: "etc" as const };
 
 export type TrafficRow = { key: string; label: string; color: string; views: number; pct: number; intent: string };
-export type TrafficMix = { name: string; start: string; end: string; total: number; rows: TrafficRow[] };
+export type TrafficMix = { name: string; start: string; end: string; days: number; total: number; perDay: number; rows: TrafficRow[] };
+
+const dayCount = (start: string, end: string) =>
+  Math.max(1, Math.round((new Date(end + "T00:00:00Z").getTime() - new Date(start + "T00:00:00Z").getTime()) / 86400000) + 1);
 export type TrafficCompare = { a: TrafficMix; b: TrafficMix } | null;
 
 type TrafficDay = { day: string; source: string; views: number };
@@ -38,7 +41,8 @@ function mixRange(rows: TrafficDay[], name: string, start: string, end: string):
       return { key, label: m.label, color: m.color, views, pct: total ? Math.round((views / total) * 1000) / 10 : 0, intent: m.intent };
     })
     .sort((a, b) => b.views - a.views);
-  return { name, start, end, total, rows: out };
+  const days = dayCount(start, end);
+  return { name, start, end, days, total, perDay: Math.round(total / days), rows: out };
 }
 
 const startOf = (c: Cohort) => (c.pre_open ?? c.eb1_open) ?? "";

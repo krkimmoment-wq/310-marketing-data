@@ -22,27 +22,29 @@ export default function TrafficBySectionView({ data }: { data: NonNullable<Traff
       <div className="font-hud text-xs uppercase tracking-[0.25em] text-cyan-400/80 mb-1">
         YouTube 트래픽 · 구간별 대조 ({aName} vs {bName})
       </div>
-      <div className="text-[11px] text-slate-500 mb-4">구간별 채널 조회 총량(화력)과 소스 믹스(질)를 지난 기수와 비교. 빨강 = {aName} 화력 부족 구간.</div>
+      <div className="text-[11px] text-slate-500 mb-4">구간별 채널 조회 <b className="text-slate-300">일평균</b>(화력, 기간 길이 정규화)과 소스 믹스(질)를 지난 기수와 비교. 숫자는 /일 기준이라 모집기간이 달라도 공정. 빨강 = {aName} 일평균 화력 부족 구간.</div>
 
       <div className="divide-y divide-slate-800">
         {sections.map((sec) => {
-          const at = sec.a?.total ?? 0;
-          const bt = sec.b?.total ?? 0;
-          const ratio = bt ? at / bt : null;
-          const weak = ratio != null && ratio < 0.7; // 14기 화력 30%+ 부족
+          // 기간 길이가 달라도 공정하게 — 일평균(perDay)으로 비교
+          const ap = sec.a?.perDay ?? 0;
+          const bp = sec.b?.perDay ?? 0;
+          const ratio = bp ? ap / bp : null;
+          const weak = ratio != null && ratio < 0.7; // 14기 일평균 화력 30%+ 부족
           return (
             <div key={sec.section} className="py-3">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <span className="font-bold text-slate-200">{sec.section}</span>
                 <span className="text-xs">
-                  <span className="text-cyan-300">{aName} {at.toLocaleString("ko-KR")}</span>
+                  <span className="text-cyan-300">{aName} {ap.toLocaleString("ko-KR")}/일</span>
                   <span className="text-slate-500"> vs </span>
-                  <span className="text-amber-300">{bName} {bt.toLocaleString("ko-KR")}</span>
+                  <span className="text-amber-300">{bName} {bp.toLocaleString("ko-KR")}/일</span>
                   {ratio != null && (
                     <span className={`ml-1.5 font-bold ${weak ? "text-rose-300" : "text-slate-400"}`}>
                       ({Math.round(ratio * 100)}%{weak ? " ⚠️" : ""})
                     </span>
                   )}
+                  <span className="text-slate-600"> · {sec.a?.days ?? "-"}일/{sec.b?.days ?? "-"}일</span>
                 </span>
               </div>
               <div className="space-y-1">
