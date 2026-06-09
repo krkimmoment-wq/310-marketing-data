@@ -5,7 +5,7 @@ const SRC: Record<string, { label: string; color: string; intent: "high" | "algo
   YT_SEARCH: { label: "검색", color: "#22c55e", intent: "high" },
   SUBSCRIBER: { label: "구독피드/홈", color: "#3b82f6", intent: "high" },
   RELATED_VIDEO: { label: "추천영상", color: "#06b6d4", intent: "algo" },
-  SHORTS: { label: "Shorts", color: "#a855f7", intent: "algo" },
+  SHORTS: { label: "쇼츠피드", color: "#a855f7", intent: "algo" },
   ADVERTISING: { label: "광고", color: "#64748b", intent: "etc" },
   EXT_URL: { label: "외부링크", color: "#f59e0b", intent: "ext" },
   EXTERNAL: { label: "외부링크", color: "#f59e0b", intent: "ext" },

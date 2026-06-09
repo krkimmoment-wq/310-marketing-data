@@ -69,7 +69,7 @@ export default function TrafficBySectionView({ data }: { data: NonNullable<Traff
       <div className="flex flex-wrap gap-3 text-[10px] text-slate-400 mt-3 pt-3 border-t border-slate-800">
         <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#22c55e" }} />검색(의도↑)</span>
         <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#3b82f6" }} />구독피드/홈(의도↑)</span>
-        <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#a855f7" }} />Shorts(알고리즘)</span>
+        <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#a855f7" }} />쇼츠피드(쇼츠탭 경유·알고리즘)</span>
         <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#f59e0b" }} />외부</span>
         <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#64748b" }} />광고</span>
       </div>

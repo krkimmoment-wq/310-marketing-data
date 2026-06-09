@@ -36,11 +36,11 @@ export async function getInsightBrief(curName = "14기"): Promise<InsightBrief> 
   let prescription: string[];
   if (clickUp && convDown) {
     verdict = "전환 문제";
-    headline = `유입은 ${f.aName}가 ${f.bName} 이상인데 전환율이 붕괴 — 범인은 "클릭 이후"(랜딩·오퍼·결제)`;
+    headline = `유입은 ${f.aName}가 ${f.bName} 이상인데 전환율이 붕괴 — 오퍼·할인이 동일하다면 범인은 "클릭의 질"(유료 프로모션 공백 → 타겟 유입이 쇼츠피드 스침으로 대체)`;
     prescription = [
-      `얼리버드 랜딩·오퍼·가격을 ${f.bName} 수준과 직접 비교 점검 (혜택·할인폭이 약해졌나)`,
-      `후기·신뢰 요소 강화 — 특히 2차EB는 망설이는 층이라 치명적`,
-      `콘텐츠 더 만들기·트래픽 키우기는 헛다리. 유입은 이미 ${f.bName} 이상`,
+      `오퍼·할인·기간이 ${f.bName}와 동일하다면 랜딩은 변수 아님 → 범인은 클릭의 "질". STEP3에서 광고·검색·구독(의도↑)이 줄고 쇼츠피드(쇼츠탭 스침)가 늘었는지 확인`,
+      `유료 프로모션을 길게 풀링 + 승인 나는 소재로 (3일 단발·비승인 공백 X) — 타겟 유입 회복이 핵심 레버`,
+      `후기·신뢰 강화 (특히 2차EB 망설이는 층). 콘텐츠 '양' 늘리기·트래픽 키우기는 헛다리 — 유입은 이미 ${f.bName} 이상`,
     ];
   } else if (!trafficUp) {
     verdict = "트래픽 문제";

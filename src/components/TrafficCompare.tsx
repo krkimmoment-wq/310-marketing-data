@@ -27,7 +27,7 @@ export default function TrafficCompareView({ data }: { data: NonNullable<Traffic
   const pctOf = (mix: typeof a, key: string) => mix.rows.find((r) => r.key === key)?.pct ?? 0;
   const keys = ["SHORTS", "EXT_URL", "EXTERNAL", "YT_SEARCH", "SUBSCRIBER"];
   const deltas = [
-    { label: "Shorts", a: pctOf(a, "SHORTS"), b: pctOf(b, "SHORTS"), warn: true },
+    { label: "쇼츠피드", a: pctOf(a, "SHORTS"), b: pctOf(b, "SHORTS"), warn: true },
     { label: "외부링크", a: pctOf(a, "EXT_URL") + pctOf(a, "EXTERNAL"), b: pctOf(b, "EXT_URL") + pctOf(b, "EXTERNAL"), warn: true },
     { label: "검색", a: pctOf(a, "YT_SEARCH"), b: pctOf(b, "YT_SEARCH"), warn: false },
     { label: "구독피드/홈", a: pctOf(a, "SUBSCRIBER"), b: pctOf(b, "SUBSCRIBER"), warn: false },
@@ -66,12 +66,12 @@ export default function TrafficCompareView({ data }: { data: NonNullable<Traffic
       <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
         <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#22c55e" }} />검색(의도↑)</span>
         <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#3b82f6" }} />구독피드/홈(의도↑)</span>
-        <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#a855f7" }} />Shorts(알고리즘)</span>
+        <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#a855f7" }} />쇼츠피드(쇼츠탭 경유·알고리즘)</span>
         <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#f59e0b" }} />외부링크</span>
         <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#64748b" }} />광고</span>
       </div>
       <div className="text-[10px] text-slate-500 mt-2 leading-relaxed">
-        🔴 Shorts·외부 비중 증가 또는 검색·구독피드 감소 = 트래픽 &quot;질&quot; 하락 신호(광범위 노출↑·의도 시청자↓). 채널 전체 기준이라 모객 환경 추세 참고.
+        🔴 쇼츠피드·외부 비중 증가 또는 검색·구독피드 감소 = 트래픽 &quot;질&quot; 하락 신호(광범위 노출↑·의도 시청자↓). ※&quot;쇼츠피드&quot;는 쇼츠 영상 자체가 아니라 쇼츠 탭을 거쳐 온 유입 경로. 채널 전체 기준이라 모객 환경 추세 참고.
       </div>
     </div>
   );
