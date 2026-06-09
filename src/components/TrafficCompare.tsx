@@ -6,9 +6,7 @@ function Bar({ mix, accent }: { mix: TrafficMix; accent: boolean }) {
     <div>
       <div className="flex justify-between text-sm mb-1.5">
         <span className={accent ? "text-cyan-300 font-bold" : "text-amber-300 font-bold"}>{mix.name}</span>
-        <span className="text-slate-400 text-xs">
-          {mix.start.slice(5)}~{mix.end.slice(5)} ({mix.days}일) · <b className="text-slate-300">일평균 {mix.perDay.toLocaleString("ko-KR")}</b> (총 {mix.total.toLocaleString("ko-KR")})
-        </span>
+        <span className="text-slate-400 text-xs">{mix.start.slice(5)}~{mix.end.slice(5)} ({mix.days}일) · 총 {mix.total.toLocaleString("ko-KR")} 조회</span>
       </div>
       <div className="flex h-7 rounded-lg overflow-hidden bg-slate-800 anim-fx">
         {mix.rows.filter((r) => r.pct >= 1).map((r) => (
@@ -37,9 +35,10 @@ export default function TrafficCompareView({ data }: { data: NonNullable<Traffic
 
   return (
     <div className="jarvis-card p-5">
-      <div className="font-hud text-xs uppercase tracking-[0.25em] text-cyan-400/80 mb-4">
+      <div className="font-hud text-xs uppercase tracking-[0.25em] text-cyan-400/80 mb-1">
         YouTube 트래픽 소스 · {a.name} vs {b.name} (모집기간 채널 전체)
       </div>
+      <div className="text-[11px] text-slate-500 mb-4">⚠️ 모집기간 길이가 달라(아래 일수) 총 조회 절대비교는 부정확. <b className="text-slate-300">소스 믹스(비중%)</b> 위주로 보세요. 정확한 화력 비교는 위 &quot;구간별&quot; 표 참고.</div>
 
       <div className="space-y-4 mb-5">
         <Bar mix={a} accent />

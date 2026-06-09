@@ -19,18 +19,15 @@ export async function getInsightBrief(curName = "14기"): Promise<InsightBrief> 
   if (cmp.length === 0) return null;
 
   const sum = (sel: (r: (typeof cmp)[number]) => number) => cmp.reduce((s, r) => s + sel(r), 0);
+  // 같은 분기점 구간끼리 합산이라 기간 동일 — 구간 총량으로 판정 (전환율은 비율이라 기간 무관)
   const t14 = sum((r) => r.a.views), t13 = sum((r) => r.b.views);
   const c14 = sum((r) => r.a.clicks), c13 = sum((r) => r.b.clicks);
   const g14 = sum((r) => r.a.regs), g13 = sum((r) => r.b.regs);
-  const d14 = sum((r) => r.a.days), d13 = sum((r) => r.b.days);
-  // 기간 길이가 달라도 공정하게 — 조회·클릭은 일평균으로 판정
-  const pdV14 = d14 ? t14 / d14 : 0, pdV13 = d13 ? t13 / d13 : 0;
-  const pdC14 = d14 ? c14 / d14 : 0, pdC13 = d13 ? c13 / d13 : 0;
   const cv14 = c14 ? (g14 / c14) * 100 : 0;
   const cv13 = c13 ? (g13 / c13) * 100 : 0;
 
-  const trafficUp = pdV14 >= pdV13 * 0.9;
-  const clickUp = pdC14 >= pdC13 * 0.9;
+  const trafficUp = t14 >= t13 * 0.9;
+  const clickUp = c14 >= c13 * 0.9;
   const convDown = cv14 < cv13 * 0.9;
 
   let verdict: NonNullable<InsightBrief>["verdict"];
@@ -60,10 +57,10 @@ export async function getInsightBrief(curName = "14기"): Promise<InsightBrief> 
   const worst = convRows.sort((a, b) => a.ratio - b.ratio)[0];
 
   const points: BriefPoint[] = [
-    { label: "채널 조회 일평균 (화력)", a: Math.round(pdV14).toLocaleString("ko-KR") + "/일", b: Math.round(pdV13).toLocaleString("ko-KR") + "/일", good: pdV14 >= pdV13 },
-    { label: "EB링크 클릭 일평균 (유입)", a: Math.round(pdC14).toLocaleString("ko-KR") + "/일", b: Math.round(pdC13).toLocaleString("ko-KR") + "/일", good: pdC14 >= pdC13 },
+    { label: "채널 조회 (화력)", a: t14.toLocaleString("ko-KR"), b: t13.toLocaleString("ko-KR"), good: t14 >= t13 },
+    { label: "EB링크 클릭 (유입)", a: c14.toLocaleString("ko-KR"), b: c13.toLocaleString("ko-KR"), good: c14 >= c13 },
     { label: "등록 (전환 결과)", a: g14.toLocaleString("ko-KR") + "명", b: g13.toLocaleString("ko-KR") + "명", good: g14 >= g13 },
-    { label: "전환율 (등록÷클릭)", a: cv14.toFixed(2) + "%", b: cv13.toFixed(2) + "%", good: cv14 >= cv13 },
+    { label: "전환율 (등록÷클릭) ★핵심", a: cv14.toFixed(2) + "%", b: cv13.toFixed(2) + "%", good: cv14 >= cv13 },
   ];
 
   return { aName: f.aName, bName: f.bName, verdict, headline, points, worst: worst ? { section: worst.section, a: worst.a, b: worst.b } : null, prescription };

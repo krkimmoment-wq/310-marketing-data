@@ -11,13 +11,13 @@ export default function ConversionFunnelView({ data }: { data: NonNullable<Conve
         구간별 전환 퍼널 · {aName} vs {bName}
       </div>
       <div className="text-[11px] text-slate-500 mb-4">
-        YouTube 조회(채널 화력) → 비틀리 클릭(EB링크 유입) → 등록(전환). <b className="text-cyan-300">전환율 = 등록 ÷ 클릭</b>. 조회는 <b className="text-slate-300">일평균(/일)</b>이라 모집기간 길이 달라도 공정. 트래픽 많아도 전환율 낮으면 = 동선·오퍼 문제.
+        YouTube 조회(채널 화력) → 비틀리 클릭(EB링크 유입) → 등록(전환). <b className="text-cyan-300">전환율 = 등록 ÷ 클릭 (이게 핵심 — 기간 무관)</b>. 같은 분기점 구간끼리라 기간 동일(일수 병기). 트래픽 많아도 전환율 낮으면 = 동선·오퍼 문제.
       </div>
       <table className="w-full text-sm whitespace-nowrap">
         <thead className="text-slate-400 text-left">
           <tr className="border-b border-slate-800">
             <th className="py-2 pr-3">구간</th>
-            <th className="py-2 px-2 text-right">조회/일</th>
+            <th className="py-2 px-2 text-right">조회</th>
             <th className="py-2 px-2 text-right">클릭</th>
             <th className="py-2 px-2 text-right">등록</th>
             <th className="py-2 px-2 text-right">전환율</th>
@@ -35,8 +35,8 @@ export default function ConversionFunnelView({ data }: { data: NonNullable<Conve
                   <div className="text-[10px] font-normal text-slate-500">{r.a.days}일/{r.b.days}일</div>
                 </td>
                 <td className="py-1.5 px-2 text-right">
-                  <div className="text-cyan-200">{fmt(r.a.viewsPerDay)}</div>
-                  <div className="text-amber-200/70 text-xs">{fmt(r.b.viewsPerDay)}</div>
+                  <div className="text-cyan-200">{fmt(r.a.views)}</div>
+                  <div className="text-amber-200/70 text-xs">{fmt(r.b.views)}</div>
                 </td>
                 <td className="py-1.5 px-2 text-right">
                   <div className="text-cyan-200">{fmt(r.a.clicks)}</div>
