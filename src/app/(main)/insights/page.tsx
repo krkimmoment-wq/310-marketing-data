@@ -3,8 +3,10 @@ import YtRegChart from "@/components/YtRegChart";
 import TrafficCompareView from "@/components/TrafficCompare";
 import TrafficBySectionView from "@/components/TrafficBySection";
 import ConversionFunnelView from "@/components/ConversionFunnel";
+import InsightBriefView from "@/components/InsightBrief";
 import { getTrafficCompare, getTrafficBySection } from "@/lib/ytanalytics";
 import { getConversionFunnel } from "@/lib/conversion";
+import { getInsightBrief } from "@/lib/insightbrief";
 import { kstTodayStr } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +64,7 @@ export default async function InsightsPage({
   const traffic = await getTrafficCompare(cohortName ?? "14기");
   const trafficSec = await getTrafficBySection(cohortName ?? "14기");
   const funnel = await getConversionFunnel(cohortName ?? "14기");
+  const brief = await getInsightBrief(cohortName ?? "14기");
 
   const totalReg = real.length;
   const totalVid = (yts ?? []).length;
@@ -79,6 +82,13 @@ export default async function InsightsPage({
           {cohortName ?? "14기"} · 일별 등록 ↔ YouTube 영상 발행 대조 (발행일에 어떤 콘텐츠가 전환을 끌었나)
         </p>
       </div>
+
+      {/* 핵심 브리핑 (데이터 자동 진단) */}
+      {brief && (
+        <div className="mb-6">
+          <InsightBriefView data={brief} />
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-5 mb-6">
         <div className="jarvis-card jarvis-accent p-5"><div className="text-[11px] text-slate-400">기간 실등록</div><div className="font-hud text-3xl font-black text-cyan-300 mt-2 jarvis-glow">{totalReg}명</div></div>
