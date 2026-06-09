@@ -2,7 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import YtRegChart from "@/components/YtRegChart";
 import TrafficCompareView from "@/components/TrafficCompare";
 import TrafficBySectionView from "@/components/TrafficBySection";
+import ConversionFunnelView from "@/components/ConversionFunnel";
 import { getTrafficCompare, getTrafficBySection } from "@/lib/ytanalytics";
+import { getConversionFunnel } from "@/lib/conversion";
 import { kstTodayStr } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +61,7 @@ export default async function InsightsPage({
 
   const traffic = await getTrafficCompare(cohortName ?? "14기");
   const trafficSec = await getTrafficBySection(cohortName ?? "14기");
+  const funnel = await getConversionFunnel(cohortName ?? "14기");
 
   const totalReg = real.length;
   const totalVid = (yts ?? []).length;
@@ -87,6 +90,13 @@ export default async function InsightsPage({
         <div className="jarvis-card p-6 text-sm text-slate-300">아직 데이터가 없습니다. sync 후 표시됩니다.</div>
       ) : (
         <YtRegChart days={days} />
+      )}
+
+      {/* 구간별 전환 퍼널 (조회→클릭→등록) */}
+      {funnel && (
+        <div className="mt-6">
+          <ConversionFunnelView data={funnel} />
+        </div>
       )}
 
       {/* YouTube 트래픽 소스 — 구간별 대조 (핵심) */}
