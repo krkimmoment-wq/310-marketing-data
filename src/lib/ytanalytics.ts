@@ -23,7 +23,12 @@ export async function getTrafficCompare(curName = "14기"): Promise<TrafficCompa
   if (!cohorts || cohorts.length < 2) return null;
   const cur = cohorts.find((c) => c.name === curName);
   if (!cur) return null;
-  const prev = cohorts.filter((c) => c.id < cur.id).at(-1); // 직전 기수
+  // 직전 기수 = 시작일(pre_open/eb1_open)이 현재보다 이른 기수 중 가장 가까운 것 (id 순서 아님!)
+  const startOf = (c: { pre_open: string | null; eb1_open: string | null }) => (c.pre_open ?? c.eb1_open) ?? "";
+  const curStart = startOf(cur);
+  const prev = cohorts
+    .filter((c) => c.id !== cur.id && startOf(c) < curStart)
+    .sort((a, b) => startOf(b).localeCompare(startOf(a)))[0];
   if (!prev) return null;
 
   const { data: traffic } = await sb.from("yt_traffic_daily").select("day, source, views");
