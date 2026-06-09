@@ -88,17 +88,17 @@ export default async function Dashboard({
       </div>
 
       {/* KPI 4카드 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
         {[
-          { d: 0.1, label: "실등록", main: <CountUp value={kpi.realRegs} suffix="명" />, sub: `목표 ${kpi.goal} · ${kpi.progressPct}%` },
+          { d: 0.1, label: "실등록", main: <CountUp value={kpi.realRegs} suffix="명" />, sub: `목표 ${kpi.goal} · ${kpi.progressPct}%`, accent: true },
           { d: 0.15, label: "ROAS", main: <CountUp value={kpi.roas} decimals={1} suffix="배" />, sub: `광고 ₩1 → ₩${kpi.roas}` },
           { d: 0.2, label: "매출", main: <CountUp value={kpi.totalRevenue} prefix="₩" />, sub: `광고비 ₩${kpi.totalAd.toLocaleString("ko-KR")}` },
           { d: 0.25, label: "예상 최종", main: <CountUp value={kpi.projectedFinal} suffix="명" />, sub: `페이스 ${kpi.currentPace}명/일` },
         ].map((m) => (
-          <div key={m.label} className="jarvis-card p-5 fade-up" style={{ animationDelay: `${m.d}s` }}>
+          <div key={m.label} className={`jarvis-card${m.accent ? " jarvis-accent" : ""} p-6 fade-up`} style={{ animationDelay: `${m.d}s` }}>
             <div className="font-hud text-[11px] uppercase tracking-[0.2em] text-cyan-400/70">{m.label}</div>
-            <div className="font-hud text-2xl font-black text-white mt-2 jarvis-glow">{m.main}</div>
-            <div className="text-[11px] text-slate-400 mt-1">{m.sub}</div>
+            <div className="font-hud text-3xl font-black text-white mt-2.5 jarvis-glow">{m.main}</div>
+            <div className="text-[11px] text-slate-400 mt-1.5">{m.sub}</div>
           </div>
         ))}
       </div>
