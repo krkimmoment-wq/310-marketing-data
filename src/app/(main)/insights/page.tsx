@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import YtRegChart from "@/components/YtRegChart";
+import TrafficCompareView from "@/components/TrafficCompare";
+import { getTrafficCompare } from "@/lib/ytanalytics";
 import { kstTodayStr } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +56,8 @@ export default async function InsightsPage({
     }
   }
 
+  const traffic = await getTrafficCompare(cohortName ?? "14기");
+
   const totalReg = real.length;
   const totalVid = (yts ?? []).length;
   const shortN = (yts ?? []).filter((v) => v.kind === "숏폼").length;
@@ -81,6 +85,13 @@ export default async function InsightsPage({
         <div className="jarvis-card p-6 text-sm text-slate-300">아직 데이터가 없습니다. sync 후 표시됩니다.</div>
       ) : (
         <YtRegChart days={days} />
+      )}
+
+      {/* YouTube 트래픽 소스 기수 대조 (Analytics) */}
+      {traffic && (
+        <div className="mt-6">
+          <TrafficCompareView data={traffic} />
+        </div>
       )}
 
       <div className="text-[11px] text-slate-500 mt-3 leading-relaxed">
