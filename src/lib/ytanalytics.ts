@@ -56,8 +56,15 @@ async function loadPair(curName: string): Promise<{ cur: Cohort; prev: Cohort; r
     .filter((c) => c.id !== cur.id && startOf(c) < startOf(cur))
     .sort((a, b) => startOf(b).localeCompare(startOf(a)))[0];
   if (!prev) return null;
-  const { data: traffic } = await sb.from("yt_traffic_daily").select("day, source, views");
-  return { cur, prev, rows: (traffic ?? []) as TrafficDay[] };
+  // PostgREST 기본 1000행 제한 회피 — 페이지네이션으로 전체 수집
+  const rows: TrafficDay[] = [];
+  for (let from = 0; from < 50000; from += 1000) {
+    const { data } = await sb.from("yt_traffic_daily").select("day, source, views").range(from, from + 999);
+    if (!data || data.length === 0) break;
+    rows.push(...(data as TrafficDay[]));
+    if (data.length < 1000) break;
+  }
+  return { cur, prev, rows };
 }
 
 // 모집기간 전체 대조
