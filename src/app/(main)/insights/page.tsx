@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import PubCompareChart from "@/components/PubCompareChart";
 import PubBySectionView from "@/components/PubBySection";
+import PromotionTracker from "@/components/PromotionTracker";
 import DailyCockpit from "@/components/DailyCockpit";
 import TrafficCompareView from "@/components/TrafficCompare";
 import TrafficBySectionView from "@/components/TrafficBySection";
@@ -12,6 +13,7 @@ import { getInsightBrief } from "@/lib/insightbrief";
 import { getRegDaily } from "@/lib/regdaily";
 import { getPubDaily } from "@/lib/pubdaily";
 import { getPubBySection } from "@/lib/pubsection";
+import { getPromotions } from "@/lib/promotion";
 import { kstTodayStr } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +69,7 @@ export default async function InsightsPage({
   const regDaily = await getRegDaily(cohort);
   const pubDaily = await getPubDaily(cohort);
   const pubSec = await getPubBySection(cohort);
+  const promo = await getPromotions(cohort);
 
   const totalReg = real.length;
   const totalVid = (yts ?? []).length;
@@ -133,6 +136,10 @@ export default async function InsightsPage({
       <StepHead n="STEP 4" q="콘텐츠 발행 13기 vs 14기 — 막판까지 멈췄나" />
       {pubDaily ? <PubCompareChart data={pubDaily} /> : <div className="jarvis-card p-5 text-sm text-slate-400">비교할 직전 기수 발행 데이터가 부족합니다.</div>}
       {pubSec && <PubBySectionView data={pubSec} />}
+
+      {/* STEP 5 — 프로모션 (유료광고) */}
+      <StepHead n="STEP 5" q="프로모션(유료광고) 13기 vs 14기 — 길게 풀었나, 끊었나" />
+      {promo ? <PromotionTracker data={promo} /> : <div className="jarvis-card p-5 text-sm text-slate-400">프로모션 데이터가 없습니다.</div>}
 
       {/* 부록 — 전체 트래픽 소스 */}
       <StepHead n="부록" q="모집기간 전체 트래픽 소스 (참고)" />
