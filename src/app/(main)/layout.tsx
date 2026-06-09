@@ -9,9 +9,10 @@ export default async function MainLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const sb = await createClient();
-  // 인증 가드 (Next 16 middleware Vercel 404 버그 회피 — middleware 대신 layout에서 보호)
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) redirect("/login");
+  // 인증 가드 — getClaims()는 JWT 로컬 검증이라 매 전환 네트워크 왕복(getUser)을 없앰.
+  // 실제 데이터 보호는 RLS가 담당하므로 이 가드는 redirect(UX)용으로 충분.
+  const { data: claimsData } = await sb.auth.getClaims();
+  if (!claimsData?.claims) redirect("/login");
 
   const { data: cohorts } = await sb.from("cohorts").select("id,name").order("id");
 
