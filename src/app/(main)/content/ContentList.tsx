@@ -30,19 +30,19 @@ export default function ContentList({ items }: { items: Content[] }) {
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
         <input value={q} onChange={(e) => setQ(e.target.value)}
           placeholder="제목·카테고리·플랫폼·반응 검색…"
-          className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-blue-500" />
+          className="w-full pl-9 pr-9 py-2.5 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400" />
         {q && (
-          <button onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" title="검색 지우기">✕</button>
+          <button onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200" title="검색 지우기">✕</button>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 font-bold text-slate-700">
+      <div className="jarvis-card overflow-hidden">
+        <div className="px-5 py-3 border-b border-slate-800 font-bold text-slate-200">
           콘텐츠 목록 ({filtered.length}{kw && filtered.length !== items.length ? ` / 전체 ${items.length}` : ""}건)
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500">
+            <thead className="bg-slate-900/40 text-slate-400">
               <tr>
                 <th className="px-4 py-2 text-left">발행일</th>
                 <th className="px-4 py-2 text-left">카테고리</th>
@@ -59,10 +59,10 @@ export default function ContentList({ items }: { items: Content[] }) {
                 const clickSum = rows.reduce((s, r) => s + (r.bitly_clicks ?? 0), 0);
                 return (
                   <Fragment key={cat}>
-                    <tr className="bg-slate-100/80 border-t border-slate-200">
-                      <td colSpan={8} className="px-4 py-2 font-bold text-slate-700">
+                    <tr className="bg-slate-800/60 border-t border-slate-800">
+                      <td colSpan={8} className="px-4 py-2 font-bold text-slate-200">
                         {cat}
-                        <span className="ml-2 font-normal text-slate-500">· {rows.length}건 · 클릭 {clickSum.toLocaleString("ko-KR")}</span>
+                        <span className="ml-2 font-normal text-slate-400">· {rows.length}건 · 클릭 {clickSum.toLocaleString("ko-KR")}</span>
                       </td>
                     </tr>
                     {rows.map((r) => <ContentRow key={r.id} c={r} />)}
@@ -71,7 +71,7 @@ export default function ContentList({ items }: { items: Content[] }) {
               })}
               {groups.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                     {kw ? `"${q}" 검색 결과가 없습니다.` : "콘텐츠 기록이 없습니다. 위에서 추가하세요."}
                   </td>
                 </tr>

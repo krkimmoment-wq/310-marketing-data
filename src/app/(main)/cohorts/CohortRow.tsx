@@ -33,7 +33,7 @@ export type Cohort = {
   class_start: string | null;
 };
 
-const inputCls = "mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500 text-sm";
+const inputCls = "mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400 text-sm";
 
 export default function CohortRow({ c }: { c: Cohort }) {
   const router = useRouter();
@@ -81,45 +81,45 @@ export default function CohortRow({ c }: { c: Cohort }) {
 
   if (!editing) {
     return (
-      <tr className="border-t border-slate-100">
-        <td className="px-4 py-2 font-bold text-slate-800">{c.name}</td>
-        <td className="px-4 py-2 text-slate-600">{c.goal ?? "-"}명</td>
-        <td className="px-4 py-2 text-slate-600">{c.pre_open ?? "-"}</td>
-        <td className="px-4 py-2 text-slate-600">{c.eb1_open ?? "-"}</td>
-        <td className="px-4 py-2 text-slate-600">{c.eb2_open ?? "-"}</td>
-        <td className="px-4 py-2 text-slate-600">{c.reg_open ?? "-"}</td>
-        <td className="px-4 py-2 text-slate-600">{c.ended_at ?? "-"}</td>
+      <tr className="border-t border-slate-800">
+        <td className="px-4 py-2 font-bold text-slate-100">{c.name}</td>
+        <td className="px-4 py-2 text-slate-300">{c.goal ?? "-"}명</td>
+        <td className="px-4 py-2 text-slate-300">{c.pre_open ?? "-"}</td>
+        <td className="px-4 py-2 text-slate-300">{c.eb1_open ?? "-"}</td>
+        <td className="px-4 py-2 text-slate-300">{c.eb2_open ?? "-"}</td>
+        <td className="px-4 py-2 text-slate-300">{c.reg_open ?? "-"}</td>
+        <td className="px-4 py-2 text-slate-300">{c.ended_at ?? "-"}</td>
         <td className="px-4 py-2 whitespace-nowrap">
-          <button onClick={() => setEditing(true)} className="px-2.5 py-1 rounded border border-slate-300 text-slate-600 text-xs hover:bg-slate-100">✏️ 수정</button>
-          <button onClick={remove} disabled={saving} className="ml-1 px-2.5 py-1 rounded border border-rose-200 text-rose-500 text-xs hover:bg-rose-50 disabled:opacity-50">🗑️</button>
+          <button onClick={() => setEditing(true)} className="px-2.5 py-1 rounded border border-slate-600 text-slate-300 text-xs hover:bg-slate-800">✏️ 수정</button>
+          <button onClick={remove} disabled={saving} className="ml-1 px-2.5 py-1 rounded border border-rose-500/30 text-rose-300 text-xs hover:bg-rose-500/10 disabled:opacity-50">🗑️</button>
         </td>
       </tr>
     );
   }
 
   return (
-    <tr className="border-t border-blue-200 bg-blue-50/40">
+    <tr className="border-t border-cyan-500/30 bg-cyan-500/5">
       <td colSpan={8} className="px-4 py-4">
-        <div className="font-bold text-slate-700 mb-3">✏️ {c.name} 수정</div>
+        <div className="font-bold text-slate-200 mb-3">✏️ {c.name} 수정</div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <label className="text-sm">
-            <span className="text-slate-500">기수명 *</span>
+            <span className="text-slate-400">기수명 *</span>
             <input value={form.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
           </label>
           <label className="text-sm">
-            <span className="text-slate-500">목표 인원</span>
+            <span className="text-slate-400">목표 인원</span>
             <input type="number" value={form.goal} onChange={(e) => set("goal", e.target.value)} className={inputCls} />
           </label>
           {DATE_FIELDS.map((f) => (
             <label key={f.key} className="text-sm">
-              <span className="text-slate-500">{f.label}</span>
+              <span className="text-slate-400">{f.label}</span>
               <input type="date" value={form[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)} className={inputCls} />
             </label>
           ))}
         </div>
         <div className="flex gap-2 mt-4">
           <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-50">{saving ? "저장 중..." : "저장"}</button>
-          <button onClick={() => { setForm(initial()); setEditing(false); }} className="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50">취소</button>
+          <button onClick={() => { setForm(initial()); setEditing(false); }} className="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800">취소</button>
         </div>
       </td>
     </tr>

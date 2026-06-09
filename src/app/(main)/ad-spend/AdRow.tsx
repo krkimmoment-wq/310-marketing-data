@@ -24,7 +24,7 @@ export type Ad = {
   clicks: number | null;
 };
 
-const inputCls = "w-full px-2 py-1 rounded border border-blue-300 outline-none focus:border-blue-500 text-xs";
+const inputCls = "w-full px-2 py-1 rounded bg-slate-900/60 border border-slate-700 text-slate-100 outline-none focus:border-cyan-400 text-xs";
 
 export default function AdRow({ a }: { a: Ad }) {
   const router = useRouter();
@@ -95,24 +95,24 @@ export default function AdRow({ a }: { a: Ad }) {
 
   if (!editing) {
     return (
-      <tr className="border-t border-slate-100">
-        <td className="px-4 py-2 text-slate-700">{PLATFORM_LABEL[a.platform] ?? a.platform}</td>
-        <td className="px-4 py-2 text-slate-600 max-w-xs truncate" title={a.campaign ?? ""}>{a.campaign ?? "-"}</td>
-        <td className="px-4 py-2 text-slate-600">{a.period_start ?? "-"}</td>
-        <td className="px-4 py-2 font-medium text-slate-800">{(a.cost ?? 0).toLocaleString("ko-KR")}원</td>
-        <td className="px-4 py-2 text-slate-600">{(a.impressions ?? 0).toLocaleString("ko-KR")}</td>
-        <td className="px-4 py-2 text-slate-600">{(a.views ?? 0).toLocaleString("ko-KR")}</td>
-        <td className="px-4 py-2 text-slate-600">{(a.clicks ?? 0).toLocaleString("ko-KR")}</td>
+      <tr className="border-t border-slate-800">
+        <td className="px-4 py-2 text-slate-200">{PLATFORM_LABEL[a.platform] ?? a.platform}</td>
+        <td className="px-4 py-2 text-slate-300 max-w-xs truncate" title={a.campaign ?? ""}>{a.campaign ?? "-"}</td>
+        <td className="px-4 py-2 text-slate-300">{a.period_start ?? "-"}</td>
+        <td className="px-4 py-2 font-medium text-slate-100">{(a.cost ?? 0).toLocaleString("ko-KR")}원</td>
+        <td className="px-4 py-2 text-slate-300">{(a.impressions ?? 0).toLocaleString("ko-KR")}</td>
+        <td className="px-4 py-2 text-slate-300">{(a.views ?? 0).toLocaleString("ko-KR")}</td>
+        <td className="px-4 py-2 text-slate-300">{(a.clicks ?? 0).toLocaleString("ko-KR")}</td>
         <td className="px-4 py-2 whitespace-nowrap">
-          <button onClick={() => setEditing(true)} className="px-2.5 py-1 rounded border border-slate-300 text-slate-600 text-xs hover:bg-slate-100">✏️ 수정</button>
-          <button onClick={remove} disabled={saving} className="ml-1 px-2.5 py-1 rounded border border-rose-200 text-rose-500 text-xs hover:bg-rose-50 disabled:opacity-50">🗑️</button>
+          <button onClick={() => setEditing(true)} className="px-2.5 py-1 rounded border border-slate-600 text-slate-300 text-xs hover:bg-slate-800">✏️ 수정</button>
+          <button onClick={remove} disabled={saving} className="ml-1 px-2.5 py-1 rounded border border-rose-500/30 text-rose-300 text-xs hover:bg-rose-500/10 disabled:opacity-50">🗑️</button>
         </td>
       </tr>
     );
   }
 
   return (
-    <tr className="border-t border-blue-200 bg-blue-50/40">
+    <tr className="border-t border-cyan-500/30 bg-cyan-500/5">
       <td className="px-3 py-2">
         <select value={form.platform} onChange={(e) => set("platform", e.target.value)} className={inputCls}>
           {PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
@@ -126,7 +126,7 @@ export default function AdRow({ a }: { a: Ad }) {
       <td className="px-3 py-2"><input type="number" value={form.clicks} onChange={(e) => set("clicks", Number(e.target.value))} className={inputCls} /></td>
       <td className="px-3 py-2 whitespace-nowrap">
         <button onClick={save} disabled={saving} className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-bold disabled:opacity-50">{saving ? "..." : "저장"}</button>
-        <button onClick={cancel} className="ml-1 px-2 py-1 rounded border border-slate-300 text-slate-500 text-xs">취소</button>
+        <button onClick={cancel} className="ml-1 px-2 py-1 rounded border border-slate-600 text-slate-300 text-xs">취소</button>
       </td>
     </tr>
   );

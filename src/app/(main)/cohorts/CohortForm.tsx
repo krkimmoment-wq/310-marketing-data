@@ -54,33 +54,33 @@ export default function CohortForm() {
   }
 
   return (
-    <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-      <div className="font-bold text-slate-700">새 기수 추가</div>
+    <form onSubmit={submit} className="jarvis-card p-5 space-y-4">
+      <div className="font-bold text-slate-200">새 기수 추가</div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <label className="text-sm">
-          <span className="text-slate-500">기수명 *</span>
+          <span className="text-slate-400">기수명 *</span>
           <input required value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="예: 15기"
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500" />
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400" />
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">목표 인원</span>
+          <span className="text-slate-400">목표 인원</span>
           <input type="number" value={form.goal} onChange={(e) => set("goal", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500" />
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400" />
         </label>
         {DATE_FIELDS.map((f) => (
           <label key={f.key} className="text-sm">
-            <span className="text-slate-500">{f.label}</span>
+            <span className="text-slate-400">{f.label}</span>
             <input type="date" value={form[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500" />
+              className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400" />
           </label>
         ))}
       </div>
-      <div className="text-[11px] text-slate-500">기수명만 필수입니다. 날짜는 나중에 수정해도 됩니다.</div>
+      <div className="text-[11px] text-slate-400">기수명만 필수입니다. 날짜는 나중에 수정해도 됩니다.</div>
       <div className="flex gap-2">
         <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-50">
           {saving ? "저장 중..." : "기수 생성"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50">
+        <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800">
           취소
         </button>
       </div>

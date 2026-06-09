@@ -4,6 +4,11 @@ import AdRow from "./AdRow";
 
 export const dynamic = "force-dynamic";
 
+const DARK_BG: React.CSSProperties = {
+  background:
+    "radial-gradient(1200px 600px at 80% -10%, rgba(0,229,255,0.10), transparent), radial-gradient(900px 500px at 0% 110%, rgba(59,130,246,0.10), transparent), #070b16",
+};
+
 export default async function AdSpendPage({
   searchParams,
 }: {
@@ -37,21 +42,21 @@ export default async function AdSpendPage({
   ];
 
   return (
-    <div className="bg-slate-50 min-h-screen p-6 md:p-8 space-y-6">
+    <div style={DARK_BG} className="scanlines min-h-screen p-6 md:p-8 space-y-6 text-slate-100">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-slate-800">💸 {cohortName ?? "14기"} 광고비</h1>
+        <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">💸 {cohortName ?? "14기"} 광고비</h1>
         <div className="text-right">
-          <div className="text-xs text-slate-500">총 광고비</div>
-          <div className="text-xl font-extrabold text-slate-800">{total.toLocaleString("ko-KR")}원</div>
+          <div className="text-xs text-slate-400">총 광고비</div>
+          <div className="text-xl font-extrabold text-slate-100">{total.toLocaleString("ko-KR")}원</div>
         </div>
       </div>
 
       {/* 파생지표 요약 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {cards.map((c) => (
-          <div key={c.label} className="bg-white rounded-2xl border border-slate-200 p-4">
-            <div className="text-xs text-slate-500">{c.label}</div>
-            <div className="text-xl font-extrabold text-slate-800 mt-1">{c.value}</div>
+          <div key={c.label} className="jarvis-card p-4">
+            <div className="text-xs text-slate-400">{c.label}</div>
+            <div className="text-xl font-extrabold text-cyan-300 mt-1">{c.value}</div>
             <div className="text-[11px] text-slate-400 mt-0.5">{c.sub}</div>
           </div>
         ))}
@@ -59,13 +64,13 @@ export default async function AdSpendPage({
 
       <AdForm cohortId={cohort?.id} />
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 font-bold text-slate-700">
+      <div className="jarvis-card overflow-hidden">
+        <div className="px-5 py-3 border-b border-slate-800 font-bold text-slate-200">
           광고 집행 목록 ({list.length}건)
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500">
+            <thead className="bg-slate-900/40 text-slate-400">
               <tr>
                 <th className="px-4 py-2 text-left">플랫폼</th>
                 <th className="px-4 py-2 text-left">캠페인</th>
@@ -83,7 +88,7 @@ export default async function AdSpendPage({
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                     광고비 내역이 없습니다. 위에서 추가하세요.
                   </td>
                 </tr>

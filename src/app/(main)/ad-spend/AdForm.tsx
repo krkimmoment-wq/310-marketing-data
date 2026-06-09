@@ -67,26 +67,26 @@ export default function AdForm({ cohortId }: { cohortId?: number }) {
 
   const num = (k: keyof typeof form, label: string) => (
     <label className="text-sm">
-      <span className="text-slate-500">{label}</span>
+      <span className="text-slate-400">{label}</span>
       <input
         type="number"
         value={form[k] as number}
         onChange={(e) => set(k, Number(e.target.value) as never)}
-        className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+        className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
       />
     </label>
   );
 
   return (
-    <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-      <div className="font-bold text-slate-700">광고비 추가</div>
+    <form onSubmit={submit} className="jarvis-card p-5 space-y-4">
+      <div className="font-bold text-slate-200">광고비 추가</div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <label className="text-sm">
-          <span className="text-slate-500">플랫폼</span>
+          <span className="text-slate-400">플랫폼</span>
           <select
             value={form.platform}
             onChange={(e) => set("platform", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           >
             {PLATFORMS.map((p) => (
               <option key={p.value} value={p.value}>
@@ -96,20 +96,20 @@ export default function AdForm({ cohortId }: { cohortId?: number }) {
           </select>
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">캠페인명</span>
+          <span className="text-slate-400">캠페인명</span>
           <input
             value={form.campaign}
             onChange={(e) => set("campaign", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           />
         </label>
         <label className="text-sm">
-          <span className="text-slate-500">집행 시작일</span>
+          <span className="text-slate-400">집행 시작일</span>
           <input
             type="date"
             value={form.period_start}
             onChange={(e) => set("period_start", e.target.value)}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 outline-none focus:border-blue-500"
+            className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
           />
         </label>
         {num("cost", "광고비 (원)")}
@@ -129,7 +129,7 @@ export default function AdForm({ cohortId }: { cohortId?: number }) {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"
+          className="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800"
         >
           취소
         </button>
