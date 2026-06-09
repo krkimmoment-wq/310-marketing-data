@@ -71,10 +71,10 @@ export default async function InsightsPage({
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="jarvis-card p-4"><div className="text-[11px] text-slate-400">기간 실등록</div><div className="font-hud text-2xl font-black text-cyan-300 mt-1">{totalReg}명</div></div>
-        <div className="jarvis-card p-4"><div className="text-[11px] text-slate-400">발행 영상</div><div className="font-hud text-2xl font-black text-white mt-1">{totalVid}개</div><div className="text-[11px] mt-0.5"><span className="text-rose-300">▶롱폼 {longN}</span> · <span className="text-purple-300">⚡숏폼 {shortN}</span></div></div>
-        <div className="jarvis-card p-4"><div className="text-[11px] text-slate-400">영상 누적 조회</div><div className="font-hud text-2xl font-black text-white mt-1">{totalViews.toLocaleString("ko-KR")}</div></div>
+      <div className="grid grid-cols-3 gap-5 mb-6">
+        <div className="jarvis-card jarvis-accent p-5"><div className="text-[11px] text-slate-400">기간 실등록</div><div className="font-hud text-3xl font-black text-cyan-300 mt-2 jarvis-glow">{totalReg}명</div></div>
+        <div className="jarvis-card p-5"><div className="text-[11px] text-slate-400">발행 영상</div><div className="font-hud text-3xl font-black text-white mt-2">{totalVid}개</div><div className="text-[11px] mt-1"><span className="text-rose-300">▶롱폼 {longN}</span> · <span className="text-purple-300">⚡숏폼 {shortN}</span></div></div>
+        <div className="jarvis-card p-5"><div className="text-[11px] text-slate-400">영상 누적 조회</div><div className="font-hud text-3xl font-black text-white mt-2">{totalViews.toLocaleString("ko-KR")}</div></div>
       </div>
 
       {days.length === 0 ? (

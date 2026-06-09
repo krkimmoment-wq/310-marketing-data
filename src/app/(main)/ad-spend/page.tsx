@@ -52,12 +52,12 @@ export default async function AdSpendPage({
       </div>
 
       {/* 파생지표 요약 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {cards.map((c) => (
-          <div key={c.label} className="jarvis-card p-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {cards.map((c, i) => (
+          <div key={c.label} className={`jarvis-card${i === 3 ? " jarvis-accent" : ""} p-5`}>
             <div className="text-xs text-slate-400">{c.label}</div>
-            <div className="text-xl font-extrabold text-cyan-300 mt-1">{c.value}</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">{c.sub}</div>
+            <div className="font-hud text-2xl font-black text-cyan-300 mt-2 jarvis-glow">{c.value}</div>
+            <div className="text-[11px] text-slate-400 mt-1">{c.sub}</div>
           </div>
         ))}
       </div>
