@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import PubCompareChart from "@/components/PubCompareChart";
+import PubBySectionView from "@/components/PubBySection";
 import DailyCockpit from "@/components/DailyCockpit";
 import TrafficCompareView from "@/components/TrafficCompare";
 import TrafficBySectionView from "@/components/TrafficBySection";
@@ -10,6 +11,7 @@ import { getConversionFunnel } from "@/lib/conversion";
 import { getInsightBrief } from "@/lib/insightbrief";
 import { getRegDaily } from "@/lib/regdaily";
 import { getPubDaily } from "@/lib/pubdaily";
+import { getPubBySection } from "@/lib/pubsection";
 import { kstTodayStr } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +66,7 @@ export default async function InsightsPage({
   const brief = await getInsightBrief(cohort);
   const regDaily = await getRegDaily(cohort);
   const pubDaily = await getPubDaily(cohort);
+  const pubSec = await getPubBySection(cohort);
 
   const totalReg = real.length;
   const totalVid = (yts ?? []).length;
@@ -129,6 +132,7 @@ export default async function InsightsPage({
       {/* STEP 4 — 발행 13기 vs 14기 */}
       <StepHead n="STEP 4" q="콘텐츠 발행 13기 vs 14기 — 막판까지 멈췄나" />
       {pubDaily ? <PubCompareChart data={pubDaily} /> : <div className="jarvis-card p-5 text-sm text-slate-400">비교할 직전 기수 발행 데이터가 부족합니다.</div>}
+      {pubSec && <PubBySectionView data={pubSec} />}
 
       {/* 부록 — 전체 트래픽 소스 */}
       <StepHead n="부록" q="모집기간 전체 트래픽 소스 (참고)" />
