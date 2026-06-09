@@ -21,19 +21,6 @@ export default function InsightBriefView({ data }: { data: NonNullable<InsightBr
         {data.headline}
       </div>
 
-      {/* 근거 4지표 (14기 vs 13기) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        {data.points.map((p) => (
-          <div key={p.label} className="rounded-lg border border-slate-700 bg-slate-900/40 p-3">
-            <div className="text-[11px] text-slate-400">{p.label}</div>
-            <div className={`font-hud text-lg font-black ${p.good ? "text-emerald-300" : "text-rose-300"}`}>
-              {p.a} {p.good ? "▲" : "▼"}
-            </div>
-            <div className="text-[11px] text-amber-200/70">{data.bName} {p.b}</div>
-          </div>
-        ))}
-      </div>
-
       {data.worst && (
         <div className="text-sm text-slate-300 mb-3">
           가장 무너진 구간: <span className="font-bold text-rose-300">{data.worst.section}</span>
