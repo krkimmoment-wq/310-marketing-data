@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import YtRegChart from "@/components/YtRegChart";
 import RegCompareChart from "@/components/RegCompareChart";
+import PubCompareChart from "@/components/PubCompareChart";
 import DailyCockpit from "@/components/DailyCockpit";
 import TrafficCompareView from "@/components/TrafficCompare";
 import TrafficBySectionView from "@/components/TrafficBySection";
@@ -10,6 +11,7 @@ import { getTrafficCompare, getTrafficBySection } from "@/lib/ytanalytics";
 import { getConversionFunnel } from "@/lib/conversion";
 import { getInsightBrief } from "@/lib/insightbrief";
 import { getRegDaily } from "@/lib/regdaily";
+import { getPubDaily } from "@/lib/pubdaily";
 import { kstTodayStr } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +83,7 @@ export default async function InsightsPage({
   const funnel = await getConversionFunnel(cohort);
   const brief = await getInsightBrief(cohort);
   const regDaily = await getRegDaily(cohort);
+  const pubDaily = await getPubDaily(cohort);
 
   const totalReg = real.length;
   const totalVid = (yts ?? []).length;
@@ -176,12 +179,19 @@ export default async function InsightsPage({
         <div className="jarvis-card p-5 text-sm text-slate-400">비교할 직전 기수 일별 데이터가 부족합니다.</div>
       )}
 
-      {/* STEP 5 — 콘텐츠 양 검증 */}
+      {/* STEP 5 — 콘텐츠 발행 비교 + 양 검증 */}
       <StepHead
-        n="STEP 5 · 검증"
-        q="콘텐츠 '양'은 영향이 있었나?"
-        desc="발행 마커(▶롱폼·⚡숏폼)가 많은 날 vs 등록 막대. 발행이 많아도 등록이 안 늘면 = 양은 변수가 아니라는 증거입니다."
+        n="STEP 5 · 콘텐츠"
+        q="직전 기수 대비 발행 '양·타이밍'이 어떤가?"
+        desc="클래스 시작일(D-Day) 기준 누적 발행을 겹쳐 봅니다. 양 자체보다 '언제까지 멈추지 않았나'(특히 막판 D-10~D-1)가 등록 페이스와 맞물립니다. 아래 마커 차트는 발행일 vs 등록을 같이 봅니다."
       />
+      {pubDaily ? (
+        <div className="mb-6">
+          <PubCompareChart data={pubDaily} />
+        </div>
+      ) : (
+        <div className="jarvis-card p-5 text-sm text-slate-400">비교할 직전 기수 발행 데이터가 부족합니다.</div>
+      )}
       {days.length === 0 ? (
         <div className="jarvis-card p-6 text-sm text-slate-300">아직 데이터가 없습니다. sync 후 표시됩니다.</div>
       ) : (
