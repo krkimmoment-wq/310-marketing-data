@@ -11,10 +11,11 @@ export default function InsightBriefView({ data }: { data: NonNullable<InsightBr
   const v = verdictStyle[data.verdict] ?? verdictStyle["양호"];
   return (
     <div className="jarvis-card jarvis-accent p-6">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
         <span className="font-hud text-xs uppercase tracking-[0.25em] text-cyan-400/80">핵심 브리핑 · {data.aName} vs {data.bName}</span>
         <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border border-current ${v.color}`}>{v.icon} {data.verdict}</span>
       </div>
+      <div className="text-[11px] text-slate-500 mb-3">현재 {data.aName}가 완료한 구간까지만 동일 비교 (진행중·미래 구간은 {data.bName} 완주와 불공정하므로 제외)</div>
 
       <div className="text-lg md:text-xl font-black text-white leading-snug mb-4 jarvis-glow">
         {data.headline}

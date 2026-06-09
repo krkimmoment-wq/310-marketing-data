@@ -15,7 +15,8 @@ export type InsightBrief = {
 export async function getInsightBrief(curName = "14기"): Promise<InsightBrief> {
   const f = await getConversionFunnel(curName);
   if (!f) return null;
-  const cmp = f.rows.filter((r) => r.b.clicks > 0 || r.b.regs > 0); // 직전 기수 비교 가능 구간만
+  // 같은 진행 시점 비교 — 현재 기수가 '완료한' 구간만 (진행중·미래 구간은 직전 기수 완주와 불공정하므로 제외)
+  const cmp = f.rows.filter((r) => r.status === "done" && (r.b.clicks > 0 || r.b.regs > 0));
   if (cmp.length === 0) return null;
 
   const sum = (sel: (r: (typeof cmp)[number]) => number) => cmp.reduce((s, r) => s + sel(r), 0);

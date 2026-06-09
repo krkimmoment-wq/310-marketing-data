@@ -19,11 +19,14 @@ const SEC: { key: string; s: keyof Cohort; e: keyof Cohort; bitly: string }[] = 
 ];
 
 export type FunnelStage = { views: number; viewsPerDay: number; days: number; clicks: number; regs: number; conv: number | null }; // conv = 등록/클릭 %
+export type FunnelRowStatus = "done" | "ongoing" | "future"; // 현재 기수 진행 상태
 
 const dayCount = (start: string, end: string) =>
   Math.max(1, Math.round((new Date(end + "T00:00:00Z").getTime() - new Date(start + "T00:00:00Z").getTime()) / 86400000) + 1);
-export type FunnelRow = { section: string; a: FunnelStage; b: FunnelStage };
+export type FunnelRow = { section: string; status: FunnelRowStatus; a: FunnelStage; b: FunnelStage };
 export type ConversionFunnel = { aName: string; bName: string; rows: FunnelRow[] } | null;
+
+const kstTodayStr = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 
 export async function getConversionFunnel(curName = "14기"): Promise<ConversionFunnel> {
   const sb = await createClient();
@@ -72,11 +75,16 @@ export async function getConversionFunnel(curName = "14기"): Promise<Conversion
     return { views, viewsPerDay: Math.round(views / days), days, clicks, regs, conv: clicks ? Math.round((regs / clicks) * 1000) / 10 : null };
   };
 
-  const rows: FunnelRow[] = SEC.map((sec) => ({
-    section: sec.key,
-    a: stage(cur, true, sec),
-    b: stage(prev, false, sec),
-  })).filter((r) => r.a.views || r.a.clicks || r.a.regs || r.b.views || r.b.clicks || r.b.regs);
+  const today = kstTodayStr();
+  const rows: FunnelRow[] = SEC.map((sec) => {
+    const cs = cur[sec.s] as string | null;
+    const ce = cur[sec.e] as string | null;
+    // 현재 기수 기준 구간 진행 상태 (같은 D-N 시점 비교를 위해)
+    let status: FunnelRowStatus = "done";
+    if (!cs || cs > today) status = "future";
+    else if (!ce || ce > today) status = "ongoing";
+    return { section: sec.key, status, a: stage(cur, true, sec), b: stage(prev, false, sec) };
+  }).filter((r) => r.a.views || r.a.clicks || r.a.regs || r.b.views || r.b.clicks || r.b.regs);
 
   return { aName: cur.name, bName: prev.name, rows };
 }

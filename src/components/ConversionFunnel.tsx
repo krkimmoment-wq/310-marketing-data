@@ -28,10 +28,13 @@ export default function ConversionFunnelView({ data }: { data: NonNullable<Conve
           {rows.map((r) => {
             const ca = r.a.conv, cb = r.b.conv;
             const worse = ca != null && cb != null && ca < cb; // 현재 기수 전환율이 더 낮음
+            const incomplete = r.status !== "done"; // 진행중·미래 — 직전 기수 완주와 직접 비교 부적절
             return (
-              <tr key={r.section} className="border-b border-slate-800/60">
+              <tr key={r.section} className={`border-b border-slate-800/60 ${incomplete ? "opacity-40" : ""}`}>
                 <td className="py-2 pr-3 font-bold text-slate-200 align-middle" rowSpan={1}>
                   {r.section}
+                  {r.status === "ongoing" && <span className="ml-1 text-[9px] text-amber-400">진행중</span>}
+                  {r.status === "future" && <span className="ml-1 text-[9px] text-slate-500">예정</span>}
                   <div className="text-[10px] font-normal text-slate-500">{r.a.days}일/{r.b.days}일</div>
                 </td>
                 <td className="py-1.5 px-2 text-right">
