@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import YtRegChart from "@/components/YtRegChart";
 import RegCompareChart from "@/components/RegCompareChart";
+import DailyCockpit from "@/components/DailyCockpit";
 import TrafficCompareView from "@/components/TrafficCompare";
 import TrafficBySectionView from "@/components/TrafficBySection";
 import ConversionFunnelView from "@/components/ConversionFunnel";
@@ -87,16 +88,46 @@ export default async function InsightsPage({
   const longN = totalVid - shortN;
   const totalViews = (yts ?? []).reduce((s, v) => s + (v.views ?? 0), 0);
 
+  // 데일리 코크핏 데이터
+  const TARGET = 150;
+  const yesterdayKst = new Date(Date.parse(todayKst) - 86400000).toISOString().slice(0, 10);
+  const todayNew = real.filter((r) => r.reg_date === todayKst).length;
+  const yesterdayNew = real.filter((r) => r.reg_date === yesterdayKst).length;
+  const dDay = regDaily ? -regDaily.curToday : co?.class_start ? -Math.round((Date.parse(todayKst) - Date.parse(co.class_start)) / 86400000) : null;
+
   return (
     <div style={DARK_BG} className="scanlines min-h-screen p-6 md:p-8 text-slate-100">
-      <div className="mb-2 pt-10 md:pt-0">
+      <div className="mb-4 pt-10 md:pt-0">
         <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">
           유입·전환 분석
         </h1>
         <p className="text-sm text-slate-400 mt-1">
-          {cohort} 모객, 어디가 잘 됐고 어디서 무너졌나 — 위에서 아래로 따라 읽으면 결론이 나옵니다.
+          {cohort} 모객 — 매일 위 코크핏으로 오늘 상태를 보고, 아래 STEP으로 원인을 파고듭니다.
         </p>
       </div>
+
+      {/* 채널 탭 — 현재 YouTube 단일 채널. 인스타 연동 시 탭 추가 */}
+      <div className="flex gap-1 mb-5 border-b border-slate-800">
+        <div className="px-4 py-2 border-b-2 border-cyan-400 text-cyan-300 font-bold text-sm flex items-center gap-1.5">
+          <span>📺</span> YouTube
+        </div>
+        <div className="px-4 py-2 text-slate-600 text-sm flex items-center gap-1.5 cursor-not-allowed" title="인스타 API 연동 후 활성화됩니다">
+          <span className="opacity-50">📷</span> Instagram <span className="text-[10px] border border-slate-700 rounded px-1 py-0.5">연동 예정</span>
+        </div>
+      </div>
+
+      {/* 데일리 코크핏 — 매일 보는 오늘 현황 */}
+      <DailyCockpit
+        cohortName={cohort}
+        channel="YouTube"
+        dDay={dDay}
+        total={totalReg}
+        target={TARGET}
+        todayNew={todayNew}
+        yesterdayNew={yesterdayNew}
+        prevName={regDaily?.prevName ?? null}
+        prevAtToday={regDaily?.prevAtToday ?? null}
+      />
 
       {/* STEP 1 — 결론 */}
       <StepHead
