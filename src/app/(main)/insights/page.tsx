@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import YtRegChart from "@/components/YtRegChart";
 import TrafficCompareView from "@/components/TrafficCompare";
-import { getTrafficCompare } from "@/lib/ytanalytics";
+import TrafficBySectionView from "@/components/TrafficBySection";
+import { getTrafficCompare, getTrafficBySection } from "@/lib/ytanalytics";
 import { kstTodayStr } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ export default async function InsightsPage({
   }
 
   const traffic = await getTrafficCompare(cohortName ?? "14기");
+  const trafficSec = await getTrafficBySection(cohortName ?? "14기");
 
   const totalReg = real.length;
   const totalVid = (yts ?? []).length;
@@ -87,7 +89,14 @@ export default async function InsightsPage({
         <YtRegChart days={days} />
       )}
 
-      {/* YouTube 트래픽 소스 기수 대조 (Analytics) */}
+      {/* YouTube 트래픽 소스 — 구간별 대조 (핵심) */}
+      {trafficSec && (
+        <div className="mt-6">
+          <TrafficBySectionView data={trafficSec} />
+        </div>
+      )}
+
+      {/* YouTube 트래픽 소스 — 모집기간 전체 대조 (요약) */}
       {traffic && (
         <div className="mt-6">
           <TrafficCompareView data={traffic} />
