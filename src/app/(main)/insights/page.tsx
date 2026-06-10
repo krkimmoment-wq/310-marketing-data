@@ -62,14 +62,11 @@ export default async function InsightsPage({
   ]);
   const real = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer && r.reg_date);
 
-  const traffic = await getTrafficCompare(cohort);
-  const trafficSec = await getTrafficBySection(cohort);
-  const funnel = await getConversionFunnel(cohort);
-  const brief = await getInsightBrief(cohort);
-  const regDaily = await getRegDaily(cohort);
-  const pubDaily = await getPubDaily(cohort);
-  const pubSec = await getPubBySection(cohort);
-  const promo = await getPromotions(cohort);
+  // 8개 데이터 병렬 로드 (순차 → 병렬, 페이지 전환 속도 개선)
+  const [traffic, trafficSec, funnel, brief, regDaily, pubDaily, pubSec, promo] = await Promise.all([
+    getTrafficCompare(cohort), getTrafficBySection(cohort), getConversionFunnel(cohort), getInsightBrief(cohort),
+    getRegDaily(cohort), getPubDaily(cohort), getPubBySection(cohort), getPromotions(cohort),
+  ]);
 
   const totalReg = real.length;
   const totalVid = (yts ?? []).length;
