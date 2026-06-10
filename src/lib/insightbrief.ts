@@ -1,5 +1,6 @@
 // 유입·전환 핵심 브리핑 — 트래픽/클릭/전환을 13기와 자동 대조해 "범인" 판정
 import { getConversionFunnel } from "@/lib/conversion";
+import { getRegDaily } from "@/lib/regdaily";
 
 export type BriefPoint = { label: string; a: string; b: string; good: boolean };
 export type InsightBrief = {
@@ -26,6 +27,11 @@ export async function getInsightBrief(curName = "14기"): Promise<InsightBrief> 
   const g14 = sum((r) => r.a.regs), g13 = sum((r) => r.b.regs);
   const cv14 = c14 ? (g14 / c14) * 100 : 0;
   const cv13 = c13 ? (g13 / c13) * 100 : 0;
+
+  // 등록은 "오늘 D-N 시점"으로 (코크핏과 일치 — 14기 진행분 포함, 13기 같은 D-N). 매일 갱신
+  const rd = await getRegDaily(curName);
+  const gToday14 = rd ? rd.curTotal : g14;
+  const gToday13 = rd ? rd.prevAtToday : g13;
 
   const trafficUp = t14 >= t13 * 0.9;
   const clickUp = c14 >= c13 * 0.9;
@@ -58,10 +64,10 @@ export async function getInsightBrief(curName = "14기"): Promise<InsightBrief> 
   const worst = convRows.sort((a, b) => a.ratio - b.ratio)[0];
 
   const points: BriefPoint[] = [
-    { label: "채널 총조회 (트래픽·완료구간)", a: t14.toLocaleString("ko-KR"), b: t13.toLocaleString("ko-KR"), good: t14 >= t13 },
-    { label: "EB클릭 (전채널·유입)", a: c14.toLocaleString("ko-KR"), b: c13.toLocaleString("ko-KR"), good: c14 >= c13 },
-    { label: "등록 (전환 결과)", a: g14.toLocaleString("ko-KR") + "명", b: g13.toLocaleString("ko-KR") + "명", good: g14 >= g13 },
-    { label: "전환율 (등록÷전채널클릭) ★핵심", a: cv14.toFixed(2) + "%", b: cv13.toFixed(2) + "%", good: cv14 >= cv13 },
+    { label: "채널 총조회 (완료구간)", a: t14.toLocaleString("ko-KR"), b: t13.toLocaleString("ko-KR"), good: t14 >= t13 },
+    { label: "EB클릭 (전채널·완료구간)", a: c14.toLocaleString("ko-KR"), b: c13.toLocaleString("ko-KR"), good: c14 >= c13 },
+    { label: "등록 (오늘까지·코크핏과 일치)", a: gToday14.toLocaleString("ko-KR") + "명", b: gToday13.toLocaleString("ko-KR") + "명", good: gToday14 >= gToday13 },
+    { label: "전환율 (완료구간 등록÷클릭) ★핵심", a: cv14.toFixed(2) + "%", b: cv13.toFixed(2) + "%", good: cv14 >= cv13 },
   ];
 
   return { aName: f.aName, bName: f.bName, verdict, headline, points, worst: worst ? { section: worst.section, a: worst.a, b: worst.b } : null, prescription };
