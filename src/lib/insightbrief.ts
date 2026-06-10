@@ -58,10 +58,10 @@ export async function getInsightBrief(curName = "14기"): Promise<InsightBrief> 
   const worst = convRows.sort((a, b) => a.ratio - b.ratio)[0];
 
   const points: BriefPoint[] = [
-    { label: "채널 조회 (화력)", a: t14.toLocaleString("ko-KR"), b: t13.toLocaleString("ko-KR"), good: t14 >= t13 },
-    { label: "EB링크 클릭 (유입)", a: c14.toLocaleString("ko-KR"), b: c13.toLocaleString("ko-KR"), good: c14 >= c13 },
+    { label: "채널 총조회 (트래픽·완료구간)", a: t14.toLocaleString("ko-KR"), b: t13.toLocaleString("ko-KR"), good: t14 >= t13 },
+    { label: "EB클릭 (전채널·유입)", a: c14.toLocaleString("ko-KR"), b: c13.toLocaleString("ko-KR"), good: c14 >= c13 },
     { label: "등록 (전환 결과)", a: g14.toLocaleString("ko-KR") + "명", b: g13.toLocaleString("ko-KR") + "명", good: g14 >= g13 },
-    { label: "전환율 (등록÷클릭) ★핵심", a: cv14.toFixed(2) + "%", b: cv13.toFixed(2) + "%", good: cv14 >= cv13 },
+    { label: "전환율 (등록÷전채널클릭) ★핵심", a: cv14.toFixed(2) + "%", b: cv13.toFixed(2) + "%", good: cv14 >= cv13 },
   ];
 
   return { aName: f.aName, bName: f.bName, verdict, headline, points, worst: worst ? { section: worst.section, a: worst.a, b: worst.b } : null, prescription };
