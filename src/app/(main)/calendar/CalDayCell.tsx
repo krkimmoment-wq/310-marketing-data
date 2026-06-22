@@ -73,6 +73,16 @@ export default function CalDayCell({
             📝 {cell.note}
           </div>
         )}
+        {(cell.events.content.length > 0 || cell.events.ad.length > 0) && (
+          <div className="mt-0.5 flex flex-col gap-px leading-none">
+            {cell.events.content.map((c, i) => (
+              <span key={"c" + i} className="text-[7px] text-fuchsia-300 truncate" title={"콘텐츠: " + c}>📹{c}</span>
+            ))}
+            {cell.events.ad.map((a, i) => (
+              <span key={"a" + i} className="text-[7px] text-amber-300 truncate" title={"광고: " + a}>💰{a}</span>
+            ))}
+          </div>
+        )}
         <div className="mt-auto flex flex-col items-end gap-0.5 leading-none">
           {cell.newCount > 0 && <span className="text-[11px] font-hud text-emerald-300">+{cell.newCount}</span>}
           {cell.refund > 0 && <span className="text-[10px] text-rose-300">-{cell.refund}</span>}

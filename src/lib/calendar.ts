@@ -11,6 +11,7 @@ export type CalDay = {
   section: string | null;
   milestone: string | null;
   note: string | null; // 일별 특이사항/액션 메모
+  events: { content: string[]; ad: string[] }; // 콘텐츠 발행(📹)·광고 집행(💰) 마커 — 추가
   isToday: boolean; // 오늘(KST) 여부 — 불빛 모션
 };
 
@@ -38,13 +39,21 @@ export async function getCalendar(cohortName = "14기"): Promise<CalendarData | 
   const { data: cohort } = await sb.from("cohorts").select("*").eq("name", cohortName).single();
   if (!cohort) return null;
 
-  const [daily, { data: notes }] = await Promise.all([
+  const [daily, { data: notes }, { data: content }, { data: ads }] = await Promise.all([
     cohortDailyRows(sb, cohort.id),
     sb.from("calendar_note").select("note_date, note").eq("cohort_id", cohort.id),
+    sb.from("content_log").select("pub_date, category, title").eq("cohort_id", cohort.id),
+    sb.from("ad_spend").select("period_start, platform").eq("cohort_id", cohort.id), // cohort_id=14기만 → 13기 제외
   ]);
   const rows = daily;
   const noteMap = new Map<string, string>();
   for (const n of notes ?? []) noteMap.set(n.note_date, n.note);
+  // 콘텐츠·광고 이벤트 마커 (추가 — 기존 등록/분기점/note 로직과 무관)
+  const PF: Record<string, string> = { youtube: "유튜브", instagram: "인스타", tiktok: "틱톡" };
+  const eventMap = new Map<string, { content: string[]; ad: string[] }>();
+  const evGet = (d: string) => { let e = eventMap.get(d); if (!e) { e = { content: [], ad: [] }; eventMap.set(d, e); } return e; };
+  for (const c of content ?? []) if (c.pub_date) evGet(c.pub_date).content.push(c.category || "콘텐츠");
+  for (const a of ads ?? []) if (a.period_start) { const lbl = (PF[a.platform] || a.platform) + " 광고"; const e = evGet(a.period_start); if (!e.ad.includes(lbl)) e.ad.push(lbl); } // 같은날 같은채널 1회·금액제외
 
   // 날짜별 집계 + 누적
   const dayMap = new Map<string, { newCount: number; refund: number; cumulative: number; section: string | null }>();
@@ -88,7 +97,7 @@ export async function getCalendar(cohortName = "14기"): Promise<CalendarData | 
   const endY = end.getUTCFullYear();
   const endM = end.getUTCMonth() + 1;
   while (y < endY || (y === endY && m <= endM)) {
-    months.push(buildMonth(y, m, dayMap, milestoneMap, noteMap, todayStr));
+    months.push(buildMonth(y, m, dayMap, milestoneMap, noteMap, eventMap, todayStr));
     m++;
     if (m > 12) {
       m = 1;
@@ -105,6 +114,7 @@ function buildMonth(
   dayMap: Map<string, { newCount: number; refund: number; cumulative: number; section: string | null }>,
   milestoneMap: Map<string, string>,
   noteMap: Map<string, string>,
+  eventMap: Map<string, { content: string[]; ad: string[] }>,
   todayStr: string
 ): CalMonth {
   const firstDow = new Date(Date.UTC(year, month - 1, 1)).getUTCDay(); // 0=일
@@ -124,6 +134,7 @@ function buildMonth(
       section: info?.section ?? null,
       milestone: milestoneMap.get(date) ?? null,
       note: noteMap.get(date) ?? null,
+      events: eventMap.get(date) ?? { content: [], ad: [] },
       isToday: date === todayStr,
     });
   }
