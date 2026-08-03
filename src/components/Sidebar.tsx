@@ -10,6 +10,7 @@ const NAV = [
   { href: "/", label: "대시보드", icon: "📊" },
   { href: "/registrations", label: "등록 관리", icon: "📝" },
   { href: "/ad-spend", label: "광고비", icon: "💸" },
+  { href: "/kakao-message", label: "카카오 메시지", icon: "💬" },
   { href: "/sns", label: "SNS·채널", icon: "📡" },
   { href: "/calendar", label: "캘린더", icon: "📅" },
   { href: "/content", label: "콘텐츠 기록", icon: "🎬" },
