@@ -26,6 +26,13 @@ export type Ad = {
 
 const inputCls = "w-full px-2 py-1 rounded bg-slate-900/60 border border-slate-700 text-slate-100 outline-none focus:border-cyan-400 text-xs";
 
+// 클릭률(CTR) = 클릭 ÷ 노출 (광고 표준, 상단 카드와 동일 정의)
+function ctrOf(m: { clicks: number | null; impressions: number | null }) {
+  const imp = m.impressions ?? 0;
+  const clk = m.clicks ?? 0;
+  return imp ? `${Math.round((clk / imp) * 1000) / 10}%` : "-";
+}
+
 export default function AdRow({ a }: { a: Ad }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -103,6 +110,7 @@ export default function AdRow({ a }: { a: Ad }) {
         <td className="px-4 py-2 text-slate-300">{(a.impressions ?? 0).toLocaleString("ko-KR")}</td>
         <td className="px-4 py-2 text-slate-300">{(a.views ?? 0).toLocaleString("ko-KR")}</td>
         <td className="px-4 py-2 text-slate-300">{(a.clicks ?? 0).toLocaleString("ko-KR")}</td>
+        <td className="px-4 py-2 font-medium text-cyan-300">{ctrOf(a)}</td>
         <td className="px-4 py-2 whitespace-nowrap">
           <button onClick={() => setEditing(true)} className="px-2.5 py-1 rounded border border-slate-600 text-slate-300 text-xs hover:bg-slate-800">✏️ 수정</button>
           <button onClick={remove} disabled={saving} className="ml-1 px-2.5 py-1 rounded border border-rose-500/30 text-rose-300 text-xs hover:bg-rose-500/10 disabled:opacity-50">🗑️</button>
@@ -124,6 +132,7 @@ export default function AdRow({ a }: { a: Ad }) {
       <td className="px-3 py-2"><input type="number" value={form.impressions} onChange={(e) => set("impressions", Number(e.target.value))} className={inputCls} /></td>
       <td className="px-3 py-2"><input type="number" value={form.views} onChange={(e) => set("views", Number(e.target.value))} className={inputCls} /></td>
       <td className="px-3 py-2"><input type="number" value={form.clicks} onChange={(e) => set("clicks", Number(e.target.value))} className={inputCls} /></td>
+      <td className="px-3 py-2 text-cyan-300 text-xs">{ctrOf({ clicks: form.clicks, impressions: form.impressions })}</td>
       <td className="px-3 py-2 whitespace-nowrap">
         <button onClick={save} disabled={saving} className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-bold disabled:opacity-50">{saving ? "..." : "저장"}</button>
         <button onClick={cancel} className="ml-1 px-2 py-1 rounded border border-slate-600 text-slate-300 text-xs">취소</button>

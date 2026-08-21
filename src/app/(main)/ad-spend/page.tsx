@@ -79,6 +79,7 @@ export default async function AdSpendPage({
                 <th className="px-4 py-2 text-left">노출</th>
                 <th className="px-4 py-2 text-left">조회/도달</th>
                 <th className="px-4 py-2 text-left">클릭/방문</th>
+                <th className="px-4 py-2 text-left">클릭률</th>
                 <th className="px-4 py-2 text-left">관리</th>
               </tr>
             </thead>
@@ -88,7 +89,7 @@ export default async function AdSpendPage({
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
                     광고비 내역이 없습니다. 위에서 추가하세요.
                   </td>
                 </tr>
