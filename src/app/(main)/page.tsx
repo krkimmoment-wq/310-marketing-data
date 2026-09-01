@@ -1,5 +1,6 @@
 import { getKpi } from "@/lib/kpi";
 import { getDayComparison } from "@/lib/comparison";
+import { resolveCohortPair } from "@/lib/cohorts";
 import CountUp from "@/components/CountUp";
 import AiBriefing from "@/components/AiBriefing";
 import DayComparisonChart from "@/components/DayComparisonChart";
@@ -19,17 +20,20 @@ export default async function Dashboard({
   searchParams: Promise<{ cohort?: string }>;
 }) {
   const { cohort } = await searchParams;
-  const cohortName = cohort ?? "14기";
-  const kpi = await getKpi(cohortName);
+  // 기본 = 최신 기수(시간순), 대조 = 그 직전 기수 (id 순서가 시간순이 아니라 pre_open 기준)
+  const { currentName, previousName } = await resolveCohortPair(cohort);
+  const kpi = await getKpi(currentName);
   if (!kpi)
     return (
       <div style={DARK_BG} className="min-h-screen p-8 text-slate-300">
-        {cohortName} 데이터를 찾을 수 없습니다.
+        {currentName} 데이터를 찾을 수 없습니다.
       </div>
     );
 
   const maxSection = Math.max(1, ...SECTIONS.map((s) => kpi.bySection[s] ?? 0));
-  const dayCmp = await getDayComparison(["14기", "13기"]);
+  const dayCmp = await getDayComparison(
+    previousName ? [currentName, previousName] : [currentName]
+  );
 
   // 페이스 비교 + 신호등
   const paceRatio = kpi.requiredPace > 0 ? kpi.currentPace / kpi.requiredPace : 1;

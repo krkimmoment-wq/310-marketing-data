@@ -51,9 +51,12 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
   // y축 눈금 (4분할)
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(maxY * f));
 
-  // 같은 시점(14기 현재 day) 비교 요약
-  const cur = series.find((s) => s.name === "14기");
-  const prev = series.find((s) => s.name === "13기");
+  // 현재 = 전달 순서 [0], 직전 = [1] (이름 하드코딩 없이 최신/직전 어떤 기수든 대응)
+  const cur = series[0];
+  const prev = series[1];
+  const curName = cur?.name ?? "";
+  const prevName = prev?.name ?? "";
+  // 같은 시점(현재 기수 마지막 day) 비교 요약
   let summary: { day: number; a: number; b: number; lead: number } | null = null;
   if (cur && prev) {
     const d = cur.lastDay;
@@ -67,7 +70,7 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
     <div className="jarvis-card p-5 fade-up" style={{ animationDelay: "0.4s" }}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="font-hud text-xs uppercase tracking-[0.25em] text-cyan-400/80">
-          13기 vs 14기 · D-DAY별 누적 등록
+          {prevName ? `${prevName} vs ${curName}` : curName} · D-DAY별 누적 등록
         </div>
         <div className="flex items-center gap-4 text-[11px]">
           {series.map((s) => (
@@ -86,12 +89,12 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
       {summary && (
         <div className="text-[12px] text-slate-300 mb-2">
           같은 <span className="font-hud text-cyan-300">D{summary.day >= 0 ? "+" : ""}{summary.day}</span> 시점 ·
-          14기 <span className="font-hud text-cyan-300">{summary.a}</span> vs
-          13기 <span className="font-hud text-amber-300"> {summary.b}</span> →{" "}
+          {curName} <span className="font-hud text-cyan-300">{summary.a}</span> vs
+          {prevName} <span className="font-hud text-amber-300"> {summary.b}</span> →{" "}
           {summary.lead >= 0 ? (
-            <span className="text-emerald-300 font-semibold">14기 +{summary.lead}% 우세</span>
+            <span className="text-emerald-300 font-semibold">{curName} +{summary.lead}% 우세</span>
           ) : (
-            <span className="text-rose-300 font-semibold">13기 {-summary.lead}% 우세</span>
+            <span className="text-rose-300 font-semibold">{prevName} {-summary.lead}% 우세</span>
           )}
         </div>
       )}
@@ -99,7 +102,7 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
       <div className="relative">
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full" role="img"
         onMouseMove={onMove} onMouseLeave={() => setHover(null)}
-        aria-label="13기 14기 D-Day별 누적 등록 비교 라인차트">
+        aria-label={`${prevName} ${curName} D-Day별 누적 등록 비교 라인차트`}>
         <defs>
           {series.map((s) => (
             <filter key={s.name} id={`glow-${s.name}`} x="-20%" y="-20%" width="140%" height="140%">
@@ -223,8 +226,8 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
 
       {/* hover 툴팁 박스 (운영 대시보드 방식) */}
       {hover && (() => {
-        const v14 = valOf("14기", hover.day);
-        const v13 = valOf("13기", hover.day);
+        const v14 = valOf(curName, hover.day);
+        const v13 = prevName ? valOf(prevName, hover.day) : null;
         const diff = v14 != null && v13 != null ? v14 - v13 : null;
         const ms = milestones.find((m) => m.day === hover.day);
         const act = actions.find((a) => a.day === hover.day);
@@ -248,11 +251,11 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
             </div>
             <div className="space-y-0.5 text-[11px]">
               <div className="flex justify-between gap-4">
-                <span className="text-amber-300/90">13기 누적</span>
+                <span className="text-amber-300/90">{prevName} 누적</span>
                 <span className="font-hud text-amber-200">{v13 != null ? `${v13}명` : "—"}</span>
               </div>
               <div className="flex justify-between gap-4">
-                <span className="text-cyan-300/90">14기 누적</span>
+                <span className="text-cyan-300/90">{curName} 누적</span>
                 <span className="font-hud text-cyan-200">{v14 != null ? `${v14}명` : "⏳ 진행 전"}</span>
               </div>
               <div className="flex justify-between gap-4 border-t border-slate-700 mt-1 pt-1">
@@ -269,21 +272,21 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
       </div>
 
       <div className="text-[10px] text-slate-500 mt-1 text-right font-mono">
-        x = D-Day(클래스 시작) 기준 상대일 · y = 누적 등록 (14기=실등록 실시간, 13기=집계)
+        x = D-Day(클래스 시작) 기준 상대일 · y = 누적 등록 ({curName}=현재{prevName ? ` · ${prevName}=직전` : ""})
       </div>
 
       {/* Day별 상세 표 (접기) */}
       <details className="mt-3 group">
         <summary className="cursor-pointer text-[11px] font-hud text-cyan-400/80 hover:text-cyan-300 select-none">
-          ▸ Day별 상세 표 (13기 vs 14기 · 분기점 · 📌액션)
+          ▸ Day별 상세 표 ({prevName ? `${prevName} vs ${curName}` : curName} · 분기점 · 📌액션)
         </summary>
         <div className="mt-2 max-h-80 overflow-y-auto rounded-lg border border-slate-800">
           <table className="w-full text-xs">
             <thead className="bg-slate-900/80 text-slate-400 sticky top-0">
               <tr>
                 <th className="px-3 py-1.5 text-left">Day</th>
-                <th className="px-3 py-1.5 text-right">13기</th>
-                <th className="px-3 py-1.5 text-right">14기</th>
+                <th className="px-3 py-1.5 text-right">{prevName || "직전"}</th>
+                <th className="px-3 py-1.5 text-right">{curName}</th>
                 <th className="px-3 py-1.5 text-right">차이</th>
                 <th className="px-3 py-1.5 text-left">액션</th>
               </tr>

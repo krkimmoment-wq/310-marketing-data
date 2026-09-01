@@ -14,11 +14,17 @@ export default async function MainLayout({
   const { data: claimsData } = await sb.auth.getClaims();
   if (!claimsData?.claims) redirect("/login");
 
-  const { data: cohorts } = await sb.from("cohorts").select("id,name").order("id");
+  // 시간순(최신 우선) 정렬 — id 순서는 시간순이 아님(14기=1·13기=2·15기=4).
+  // pre_open 내림차순으로 정렬해 선택기 기본값(cohorts[0])이 최신 기수가 되게 한다.
+  const { data: cohortsRaw } = await sb.from("cohorts").select("id,name,pre_open");
+  const cohorts = (cohortsRaw ?? [])
+    .slice()
+    .sort((a, b) => (b.pre_open ?? "").localeCompare(a.pre_open ?? ""))
+    .map((c) => ({ id: c.id, name: c.name }));
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar cohorts={cohorts ?? []} />
+      <Sidebar cohorts={cohorts} />
       {/* 배경·패딩은 각 페이지가 직접 결정 (대시보드=다크 / 입력=밝게) */}
       <main className="flex-1 overflow-x-auto min-w-0">{children}</main>
       {/* 우측 하단 플로팅 AI 챗봇 (모든 페이지) */}
