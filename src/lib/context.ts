@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getKpi } from "@/lib/kpi";
 import { getDayComparison } from "@/lib/comparison";
+import { getCohortsChrono } from "@/lib/cohorts";
+import { cohortDailyRows } from "@/lib/daily";
 
 export async function buildFullContext(cohortName = "14기"): Promise<string> {
   const sb = await createClient();
@@ -14,7 +16,15 @@ export async function buildFullContext(cohortName = "14기"): Promise<string> {
   if (!cohort) return "데이터를 불러올 수 없습니다.";
 
   const kpi = await getKpi(cohortName);
-  const otherName = cohortName === "14기" ? "13기" : "14기";
+  // 비교 대상 = 시간순 '직전 기수' (하드코딩 제거 — pre_open 기준 자동)
+  const chrono = await getCohortsChrono(); // 최신 → 과거
+  const curIdx = chrono.findIndex((c) => c.name === cohortName);
+  const otherName =
+    curIdx >= 0 && curIdx + 1 < chrono.length
+      ? chrono[curIdx + 1].name
+      : cohortName === "14기"
+        ? "13기"
+        : "14기";
   const otherKpi = await getKpi(otherName);
 
   const [{ data: regs }, { data: ads }, { data: contents }, { data: bitly }, { data: sections }, { data: tally }, { data: notes }] =
@@ -52,6 +62,32 @@ export async function buildFullContext(cohortName = "14기"): Promise<string> {
     }
     ctx += `- ${cohortName}: 현재 실등록 ${kpi.realRegs} · 매출 ${won(kpi.totalRevenue)} · ROAS ${kpi.roas}배 · CAC ${won(kpi.cac)}\n`;
     ctx += `- ${otherName}: 최종(완주) 실등록 ${otherKpi.realRegs} · ROAS ${otherKpi.roas}배 · CAC ${won(otherKpi.cac)} ← 효율(ROAS·CAC)만 참고, 등록수는 같은시점 값 사용\n`;
+  }
+
+  // ── 일자별 등록 (기수별, 캘린더 날짜 기준 실등록 순증) — 전 기수 제공
+  // 13기=cohort_daily 집계 / 14·15기=등록관리(registrations) 등록일 집계로 통일
+  ctx += `\n## 일자별 등록 인원 (기수별 · 캘린더 날짜 · 실등록)\n`;
+  for (const c of chrono) {
+    const rows = await cohortDailyRows(sb, c.id);
+    if (rows.length === 0) continue;
+    const line = rows.map((r) => `${r.date}:${r.new_count}`).join(", ");
+    ctx += `- ${c.name} (클래스시작 ${c.class_start ?? "?"}): ${line}\n`;
+  }
+
+  // ── 일자별 누적 등록 비교 (D-Day = 각 기수 클래스시작 기준 정렬) — 서로 다른 달을 같은 진행시점끼리 비교
+  const dcmp = await getDayComparison(chrono.map((c) => c.name));
+  if (dcmp && dcmp.series.length >= 2) {
+    ctx += `\n## 일자별 누적 등록 비교 (D-Day=클래스시작 기준 정렬 · 기수 간 같은 시점 비교용)\n`;
+    ctx += `※ 각 기수는 모집 달이 다르므로 '클래스 시작 D-Day' 기준으로 정렬해야 같은 진행시점끼리 공정 비교됨. 열=${dcmp.series.map((s) => s.name).join(" / ")}\n`;
+    for (let d = dcmp.minDay; d <= dcmp.maxDay; d++) {
+      const parts = dcmp.series
+        .map((s) => {
+          const p = s.points.find((pt) => pt.x === d);
+          return p ? `${s.name} ${p.y}` : null;
+        })
+        .filter(Boolean);
+      if (parts.length) ctx += `D${d >= 0 ? "+" : ""}${d}: ${parts.join(" · ")}\n`;
+    }
   }
 
   // 등록자 명단 (개별)
