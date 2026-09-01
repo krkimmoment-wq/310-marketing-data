@@ -26,6 +26,7 @@ const STATUS_VIEW: Record<string, { label: string; cls: string }> = {
 
 export type Reg = {
   id: number;
+  cohort_id?: number;
   name: string;
   reg_date: string;
   section: string;
@@ -42,10 +43,14 @@ export type Reg = {
 
 const inputCls = "w-full px-2 py-1 rounded bg-slate-900/60 border border-slate-700 text-slate-100 outline-none focus:border-cyan-400 text-xs";
 
-export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; name: string }[] }) {
+export default function RegRow({ r, cohorts, cohortId }: { r: Reg; cohorts: { id: number; name: string }[]; cohortId?: number }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const cohortName = (id?: number | null) => cohorts.find((c) => c.id === id)?.name ?? "?";
+  // 현재 보는 기수(cohortId) 기준 분류: 떠난 이전자(원 기수) vs 도착 이전자(다른 기수에서 옴)
+  const isDeparted = r.is_transfer && !!r.transfer_to_cohort_id && r.cohort_id === cohortId && r.transfer_to_cohort_id !== cohortId;
+  const isArrival = r.transfer_to_cohort_id === cohortId && r.cohort_id !== cohortId;
   const [form, setForm] = useState({
     name: r.name,
     reg_date: r.reg_date,
@@ -104,6 +109,20 @@ export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; 
     router.refresh();
   }
 
+  // 기수이전 취소(실수 되돌리기) — is_transfer 해제 + 도착 기수 제거 → 원 기수 정상 등록으로 복귀
+  async function cancelTransfer() {
+    if (!confirm(`"${r.name}"의 기수이전을 취소하고 ${cohortName(r.cohort_id)} 정상 등록으로 되돌릴까요?`)) return;
+    setSaving(true);
+    const sb = createClient();
+    const { error } = await sb.from("registrations").update({ is_transfer: false, transfer_to_cohort_id: null }).eq("id", r.id);
+    setSaving(false);
+    if (error) {
+      alert("이전 취소 실패: " + error.message);
+      return;
+    }
+    router.refresh();
+  }
+
   function cancel() {
     setForm({
       name: r.name,
@@ -127,8 +146,15 @@ export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; 
   if (!editing) {
     const st = STATUS_VIEW[statusOf(r)];
     return (
-      <tr className="border-t border-slate-800">
-        <td className="px-4 py-2 font-medium text-slate-100">{r.name}</td>
+      <tr className={`border-t border-slate-800 ${isDeparted ? "opacity-45 bg-slate-800/30" : ""}`}>
+        <td className="px-4 py-2 font-medium text-slate-100">
+          {r.name}
+          {isArrival && (
+            <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 whitespace-nowrap">
+              ↩️ {cohortName(r.cohort_id)}에서 이전
+            </span>
+          )}
+        </td>
         <td className="px-4 py-2 text-slate-300">{r.reg_date}</td>
         <td className="px-4 py-2 text-slate-300">{r.section}</td>
         <td className="px-4 py-2 text-slate-200">
@@ -146,12 +172,24 @@ export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; 
         <td className="px-4 py-2 text-slate-300">{r.sns_channel ?? "-"}</td>
         <td className="px-4 py-2 text-slate-300">{r.pay_platform ?? "홈페이지"}</td>
         <td className={`px-4 py-2 font-medium ${st.cls}`}>
-          {st.label}
-          {r.is_transfer && r.transfer_to_cohort_id
-            ? ` → ${cohorts.find((c) => c.id === r.transfer_to_cohort_id)?.name ?? "?"}`
-            : ""}
+          {isDeparted
+            ? `🔄 ${cohortName(r.transfer_to_cohort_id)}로 이전`
+            : isArrival
+              ? `↩️ ${cohortName(r.cohort_id)}에서 이전`
+              : st.label}
         </td>
         <td className="px-4 py-2">
+          {isDeparted ? (
+            <button
+              onClick={cancelTransfer}
+              disabled={saving}
+              className="px-2.5 py-1 rounded border border-amber-500/40 text-amber-300 text-xs hover:bg-amber-500/10 disabled:opacity-50"
+              title={`${cohortName(r.transfer_to_cohort_id)}로 이전됨 — 이 기수에서는 읽기전용. 취소하면 되돌아옵니다.`}
+            >
+              ↩️ 이전취소
+            </button>
+          ) : (
+          <>
           <button
             onClick={() => setEditing(true)}
             className="px-2.5 py-1 rounded border border-slate-600 text-slate-300 text-xs hover:bg-slate-800"
@@ -165,6 +203,8 @@ export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; 
           >
             🗑️
           </button>
+          </>
+          )}
         </td>
       </tr>
     );

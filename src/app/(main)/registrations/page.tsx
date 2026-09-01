@@ -22,12 +22,15 @@ export default async function RegistrationsPage({
   const [{ data: regs }, { data: allCohorts }, { data: arrivalsRaw }] = await Promise.all([
     sb.from("registrations").select("*").eq("cohort_id", cohort?.id).order("reg_date", { ascending: true }),
     sb.from("cohorts").select("id, name"),
-    // 이 기수로 도착한 기수이전자 (매출 요약에 가산)
-    sb.from("registrations").select("payment, is_refund, amount, refund_amount, pay_platform").eq("transfer_to_cohort_id", cohort?.id),
+    // 이 기수로 도착한 기수이전자 (매출 요약 가산 + 목록 표시)
+    sb.from("registrations").select("*").eq("transfer_to_cohort_id", cohort?.id),
   ]);
 
   const list = regs ?? [];
-  const arrivals = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료"); // 환불자 포함(net으로 잔액 반영)
+  const arrivals = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료"); // 매출용(환불자 포함, net으로 잔액 반영)
+  // 목록 표시용: 다른 기수에서 이 기수로 도착한 이전자(원 레코드는 타 기수) — 매출/인원 계산은 불변, 표시만 추가
+  const displayArrivals = (arrivalsRaw ?? []).filter((r) => r.cohort_id !== cohort?.id);
+  const displayList = [...list, ...displayArrivals];
 
   // 결제 플랫폼별 매출 (사진 재현): 매출=입금완료&미기수이전(환불 포함) / 환불=is_refund 차감 / 순매출=매출-환불
   const PLATFORMS = ["홈페이지", "유튜브", "기타"];
@@ -89,7 +92,7 @@ export default async function RegistrationsPage({
 
       <RegForm cohortId={cohort?.id} />
 
-      <RegList regs={list} cohorts={allCohorts ?? []} />
+      <RegList regs={displayList} cohorts={allCohorts ?? []} cohortId={cohort?.id} />
     </div>
   );
 }
