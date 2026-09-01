@@ -37,6 +37,7 @@ export type Reg = {
   is_refund?: boolean;
   is_transfer?: boolean;
   transfer_to_cohort_id?: number | null;
+  refund_amount?: number | null;
 };
 
 const inputCls = "w-full px-2 py-1 rounded bg-slate-900/60 border border-slate-700 text-slate-100 outline-none focus:border-cyan-400 text-xs";
@@ -55,6 +56,7 @@ export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; 
     pay_platform: r.pay_platform ?? "홈페이지",
     status: statusOf(r),
     transfer_to: r.transfer_to_cohort_id ? String(r.transfer_to_cohort_id) : "",
+    refund_amount: r.refund_amount ? String(r.refund_amount) : "",
   });
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -76,6 +78,8 @@ export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; 
         ...STATUS_MAP[form.status],
         // 기수이전일 때만 도착 기수 저장, 그 외엔 null
         transfer_to_cohort_id: form.status === "기수이전" ? Number(form.transfer_to) || null : null,
+        // 환불일 때만 환불액 저장(미입력=0=전액환불), 그 외엔 0
+        refund_amount: form.status === "환불" ? Number(form.refund_amount) || 0 : 0,
       })
       .eq("id", r.id);
     setSaving(false);
@@ -111,9 +115,14 @@ export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; 
       pay_platform: r.pay_platform ?? "홈페이지",
       status: statusOf(r),
       transfer_to: r.transfer_to_cohort_id ? String(r.transfer_to_cohort_id) : "",
+      refund_amount: r.refund_amount ? String(r.refund_amount) : "",
     });
     setEditing(false);
   }
+
+  // 실제 환불액(부분환불이면 refund_amount, 전액환불로 미입력이면 원결제 전액) · 잔액
+  const effRefund = r.is_refund ? ((r.refund_amount ?? 0) > 0 ? (r.refund_amount ?? 0) : (r.amount ?? 0)) : 0;
+  const balance = (r.amount ?? 0) - effRefund;
 
   if (!editing) {
     const st = STATUS_VIEW[statusOf(r)];
@@ -122,7 +131,17 @@ export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; 
         <td className="px-4 py-2 font-medium text-slate-100">{r.name}</td>
         <td className="px-4 py-2 text-slate-300">{r.reg_date}</td>
         <td className="px-4 py-2 text-slate-300">{r.section}</td>
-        <td className="px-4 py-2 text-slate-200">{r.amount ? r.amount.toLocaleString("ko-KR") + "원" : "-"}</td>
+        <td className="px-4 py-2 text-slate-200">
+          {r.amount ? r.amount.toLocaleString("ko-KR") + "원" : "-"}
+          {r.is_refund && (
+            <div className="text-[10px] mt-0.5 leading-tight">
+              <span className="text-rose-400">환불 −{effRefund.toLocaleString("ko-KR")}</span>
+              {balance > 0
+                ? <span className="text-emerald-400"> · 잔액 {balance.toLocaleString("ko-KR")}</span>
+                : <span className="text-slate-500"> · 전액환불</span>}
+            </div>
+          )}
+        </td>
         <td className="px-4 py-2 text-slate-300">{r.channel === "tally" ? "🅰️ Tally" : "🅱️ 카카오"}</td>
         <td className="px-4 py-2 text-slate-300">{r.sns_channel ?? "-"}</td>
         <td className="px-4 py-2 text-slate-300">{r.pay_platform ?? "홈페이지"}</td>
@@ -193,6 +212,24 @@ export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; 
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+        )}
+        {form.status === "환불" && (
+          <div className="mt-1">
+            <input
+              type="number"
+              value={form.refund_amount}
+              onChange={(e) => set("refund_amount", e.target.value)}
+              placeholder="환불액 (0=전액환불)"
+              className={inputCls}
+              title="환불받은 금액. 비우면 전액환불(잔액 0)"
+            />
+            <div className="text-[10px] mt-0.5 text-slate-400">
+              잔액 <span className="text-emerald-300">
+                {Math.max(0, (Number(form.amount) || 0) - (Number(form.refund_amount) || 0)).toLocaleString("ko-KR")}
+              </span>
+              {(Number(form.refund_amount) || 0) === 0 && " (전액환불)"}
+            </div>
+          </div>
         )}
       </td>
       <td className="px-3 py-2 whitespace-nowrap">
