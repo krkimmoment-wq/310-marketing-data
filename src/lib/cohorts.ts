@@ -10,11 +10,15 @@ function chronoKey(c: CohortRow) {
 }
 
 // 최신 → 과거 내림차순으로 정렬된 기수 목록
+// 1차 기준 = pre_open(없으면 class_start). 같거나 둘 다 없으면 id 큰 쪽(나중 생성)을 최신으로.
 export async function getCohortsChrono(): Promise<CohortRow[]> {
   const sb = await createClient();
   const { data } = await sb.from("cohorts").select("id,name,pre_open,class_start");
   const list = (data ?? []) as CohortRow[];
-  return list.sort((a, b) => chronoKey(b).localeCompare(chronoKey(a)));
+  return list.sort((a, b) => {
+    const byDate = chronoKey(b).localeCompare(chronoKey(a));
+    return byDate !== 0 ? byDate : b.id - a.id;
+  });
 }
 
 // 선택된 기수(없으면 최신)와 그 직전(시간상 바로 이전) 기수를 반환
