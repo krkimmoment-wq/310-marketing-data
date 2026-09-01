@@ -1,4 +1,5 @@
 import { getSnsData } from "@/lib/sns";
+import { getLatestCohortName } from "@/lib/cohorts";
 import SnsTrendChart from "@/components/SnsTrendChart";
 import SnsForm from "./SnsForm";
 import SnsSnapshotRow from "./SnsSnapshotRow";
@@ -24,7 +25,7 @@ export default async function SnsPage({
   searchParams: Promise<{ cohort?: string }>;
 }) {
   const { cohort } = await searchParams;
-  const data = await getSnsData(cohort ?? "14기");
+  const data = await getSnsData(cohort ?? (await getLatestCohortName()));
 
   if (!data) {
     return (

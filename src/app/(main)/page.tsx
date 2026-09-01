@@ -64,7 +64,7 @@ export default async function Dashboard({
       </div>
 
       {/* AI 브리핑 (Gemini — 키 없으면 규칙 기반 fallback) */}
-      <AiBriefing fallback={kpi.insights} />
+      <AiBriefing fallback={kpi.insights} cohort={currentName} />
 
       {/* D-Day 8분기점 타임라인 */}
       <div className="jarvis-card p-4 mb-6 fade-up" style={{ animationDelay: "0.08s" }}>

@@ -6,12 +6,13 @@ import { getKpi } from "@/lib/kpi";
 import { getDayComparison } from "@/lib/comparison";
 import { withRetry } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
+import { getLatestCohortName, resolveCohortPair } from "@/lib/cohorts";
 
 // 브리핑 + 핵심지표를 그날치로 저장 (히스토리·추세용). 실패해도 브리핑엔 영향 없음
-async function saveHistory(insights: { tone: string; text: string }[], metrics: Record<string, number>) {
+async function saveHistory(cohortName: string, insights: { tone: string; text: string }[], metrics: Record<string, number>) {
   try {
     const sb = await createClient();
-    const { data: c } = await sb.from("cohorts").select("id").eq("name", "14기").single();
+    const { data: c } = await sb.from("cohorts").select("id").eq("name", cohortName).single();
     if (!c) return;
     const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
     await sb.from("brief_history").upsert(
@@ -29,19 +30,18 @@ const SYSTEM_PROMPT = `당신은 "310 다이어트 클래스"의 베테랑 그�
 - 시니어가 아닌 검증된 베테랑 어조. 결론 먼저, 근거는 그 다음.
 - 회피·모호한 컨설팅 어조 금지. 데이터 기반으로만 단언.
 - 숫자를 사람 단위로 번역 ("ROAS 30배" → "광고 ₩1로 매출 ₩30 회수").
-- 13기 대비 14기 비교 관점 중시 (클래스 시작 = D-Day 기준. 14기 6/29·13기 4/27).
+- 직전 기수 대비 비교 관점 중시. 기수 비교는 반드시 '클래스 시작 = D-Day' 기준의 같은 진행시점 값으로.
 
 운영 맥락:
 - 코호트(기수) 기반 온라인 다이어트 코칭, 매 기수 3개월.
-- 14기 목표 150명. 분기점: 사전등록→1차EB(5/22)→2차EB(6/5)→정규(6/22)→6/28 종료.
-- 13기 베이스라인: 실등록 113명, ROAS 30.81배, CAC ₩30,846.
+- 대상 기수·목표·분기점·직전 기수 수치는 모두 아래 데이터 블록에 실시간으로 제공됨. 그 값만 사용하세요.
 
 출력 형식: 정확히 3개의 인사이트를 JSON 배열로만 출력.
 각 인사이트: {"tone": "good"|"warn"|"info", "text": "한국어 한 문장, 구체적 숫자 포함"}
 - good: 긍정 신호 / warn: 주의·경고 / info: 중립 정보
 JSON 배열만 출력. 코드블록(\`\`\`)·다른 텍스트 금지.`;
 
-export async function GET() {
+export async function GET(req: Request) {
   // 인증 가드 — 비로그인 호출 차단 (Gemini 키 소진·컨텍스트 유출 방지)
   const sbAuth = await createClient();
   const { data: { user } } = await sbAuth.auth.getUser();
@@ -51,19 +51,23 @@ export async function GET() {
     return NextResponse.json({ error: "GEMINI_API_KEY 미설정", insights: [] });
   }
 
-  const kpi = await getKpi("14기");
-  if (!kpi) return NextResponse.json({ insights: [] });
-  const k13 = await getKpi("13기");
+  // 대상 기수 = 쿼리(?cohort=) 또는 최신 기수. 비교 대상 = 시간순 직전 기수 (하드코딩 제거)
+  const cohortName = new URL(req.url).searchParams.get("cohort") || (await getLatestCohortName());
+  const { previousName } = await resolveCohortPair(cohortName);
 
-  // 같은 D-Day(클래스 시작) 시점 비교 — 13기 최종누적이 아니라 같은 시점 누적으로
-  const cmp = await getDayComparison(["14기", "13기"]);
-  const meDay = cmp?.series.find((s) => s.name === "14기")?.lastDay ?? null;
+  const kpi = await getKpi(cohortName);
+  if (!kpi) return NextResponse.json({ insights: [] });
+  const kPrev = previousName ? await getKpi(previousName) : null;
+
+  // 같은 D-Day(클래스 시작) 시점 비교 — 직전 기수 최종누적이 아니라 같은 시점 누적으로
+  const cmp = previousName ? await getDayComparison([cohortName, previousName]) : null;
+  const meDay = cmp?.series.find((s) => s.name === cohortName)?.lastDay ?? null;
   const atDay = (name: string) =>
     meDay != null ? cmp?.series.find((s) => s.name === name)?.points.find((p) => p.x === meDay)?.y ?? null : null;
-  const v14now = atDay("14기");
-  const v13same = atDay("13기");
+  const vMeNow = atDay(cohortName);
+  const vPrevSame = previousName ? atDay(previousName) : null;
 
-  const dataBlock = `다음은 14기 현재 운영 데이터입니다. 베테랑 그로스 시각의 인사이트 3개를 생성하세요.
+  const dataBlock = `다음은 ${cohortName} 현재 운영 데이터입니다. 베테랑 그로스 시각의 인사이트 3개를 생성하세요.
 각 인사이트는 "현상+의미" 또는 "위험+대안" 형태로. 막연한 칭찬·뻔한 말 금지. 페이스 부족·전환 하락 같은 위험 신호를 우선 짚으세요.
 
 - 실등록: ${kpi.realRegs}명 / 목표 ${kpi.goal}명 (${kpi.progressPct}%)
@@ -74,11 +78,11 @@ export async function GET() {
 - 다음 분기점: ${kpi.ddayLabel}
 - 구간별 실등록: ${Object.entries(kpi.bySection).map(([k, v]) => `${k} ${v}명`).join(", ") || "사전등록만 진행"}
 ${
-  meDay != null && v13same != null
-    ? `- ★같은 D${meDay >= 0 ? "+" : ""}${meDay} 시점(클래스 시작 기준) 누적 비교: 14기 ${v14now}명 vs 13기 ${v13same}명. ⚠️비교·진척률·우열은 반드시 이 '같은 시점 13기 ${v13same}명'으로 하세요. 13기 최종 완주 누적(${k13?.realRegs}명)과 비교하면 절대 안 됩니다.`
+  previousName && meDay != null && vPrevSame != null
+    ? `- ★같은 D${meDay >= 0 ? "+" : ""}${meDay} 시점(클래스 시작 기준) 누적 비교: ${cohortName} ${vMeNow}명 vs ${previousName} ${vPrevSame}명. ⚠️비교·진척률·우열은 반드시 이 '같은 시점 ${previousName} ${vPrevSame}명'으로 하세요. ${previousName} 최종 완주 누적(${kPrev?.realRegs}명)과 비교하면 절대 안 됩니다.`
     : ""
 }
-- 13기 효율(참고): ROAS ${k13?.roas ?? "-"}배, CAC ₩${(k13?.cac ?? 0).toLocaleString("ko-KR")}`;
+${kPrev ? `- ${previousName} 효율(참고): ROAS ${kPrev.roas ?? "-"}배, CAC ₩${(kPrev.cac ?? 0).toLocaleString("ko-KR")}` : ""}`;
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -98,14 +102,14 @@ ${
       insights = [{ tone: "info", text: raw.slice(0, 200) }];
     }
 
-    await saveHistory(insights, {
+    await saveHistory(cohortName, insights, {
       realRegs: kpi.realRegs,
       progressPct: kpi.progressPct,
       roas: kpi.roas,
       cac: kpi.cac,
       currentPace: kpi.currentPace,
       projectedFinal: kpi.projectedFinal,
-      sameOther: v13same ?? 0,
+      sameOther: vPrevSame ?? 0,
     });
     return NextResponse.json({ insights, model: "gemini-2.5-flash" });
   } catch (e) {

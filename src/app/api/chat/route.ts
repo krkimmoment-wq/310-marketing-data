@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { buildFullContext } from "@/lib/context";
 import { withRetry } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
+import { getLatestCohortName } from "@/lib/cohorts";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const history: { role: string; text: string }[] = body.history ?? [];
   const question: string = body.question ?? "";
-  const cohortName: string = body.cohort || "14기";
+  const cohortName: string = body.cohort || (await getLatestCohortName());
   if (!question.trim()) return NextResponse.json({ answer: "" });
 
   // 상세 데이터 컨텍스트 (선택 기수 기준 — KPI + 등록자 명단 + 광고 + 매출 + 콘텐츠 + 비틀리)

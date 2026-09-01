@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getLatestCohortName } from "@/lib/cohorts";
 import RegForm from "./RegForm";
 import RegList from "./RegList";
 
@@ -15,8 +16,9 @@ export default async function RegistrationsPage({
   searchParams: Promise<{ cohort?: string }>;
 }) {
   const { cohort: cohortName } = await searchParams;
+  const name = cohortName ?? (await getLatestCohortName());
   const sb = await createClient();
-  const { data: cohort } = await sb.from("cohorts").select("id").eq("name", cohortName ?? "14기").single();
+  const { data: cohort } = await sb.from("cohorts").select("id").eq("name", name).single();
   const { data: regs } = await sb
     .from("registrations")
     .select("*")
@@ -39,7 +41,7 @@ export default async function RegistrationsPage({
 
   return (
     <div style={DARK_BG} className="scanlines min-h-screen p-6 md:p-8 space-y-6 text-slate-100">
-      <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">📝 {cohortName ?? "14기"} 등록 관리</h1>
+      <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">📝 {name} 등록 관리</h1>
 
       {/* 결제 플랫폼별 매출 요약 */}
       <div className="jarvis-card overflow-hidden">

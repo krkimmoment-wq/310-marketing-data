@@ -11,14 +11,14 @@ const toneColor: Record<string, string> = {
 };
 const toneIcon: Record<string, string> = { good: "✅", warn: "⚠️", info: "▸" };
 
-export default function AiBriefing({ fallback }: { fallback: Insight[] }) {
+export default function AiBriefing({ fallback, cohort }: { fallback: Insight[]; cohort?: string }) {
   const [insights, setInsights] = useState<Insight[]>(fallback);
   const [loading, setLoading] = useState(true);
   const [isAi, setIsAi] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/brief")
+    fetch(`/api/brief${cohort ? `?cohort=${encodeURIComponent(cohort)}` : ""}`)
       .then((r) => r.json())
       .then((d) => {
         if (!alive) return;
@@ -32,7 +32,7 @@ export default function AiBriefing({ fallback }: { fallback: Insight[] }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [cohort]);
 
   return (
     <div className="jarvis-card p-5 mb-6 fade-up" style={{ animationDelay: "0.05s" }}>

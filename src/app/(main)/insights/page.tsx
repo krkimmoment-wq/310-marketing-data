@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getLatestCohortName } from "@/lib/cohorts";
 import PubCompareChart from "@/components/PubCompareChart";
 import PubBySectionView from "@/components/PubBySection";
 import PromotionTracker from "@/components/PromotionTracker";
@@ -52,7 +53,7 @@ export default async function InsightsPage({
   searchParams: Promise<{ cohort?: string }>;
 }) {
   const { cohort: cohortName } = await searchParams;
-  const cohort = cohortName ?? "14기";
+  const cohort = cohortName ?? (await getLatestCohortName());
   const sb = await createClient();
   const { data: co } = await sb.from("cohorts").select("id, pre_open, class_start").eq("name", cohort).single();
 

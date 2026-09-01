@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getLatestCohortName } from "@/lib/cohorts";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function BriefHistoryPage({
 }) {
   const { cohort: cohortName } = await searchParams;
   const sb = await createClient();
-  const { data: c } = await sb.from("cohorts").select("id").eq("name", cohortName ?? "14기").single();
+  const { data: c } = await sb.from("cohorts").select("id").eq("name", cohortName ?? (await getLatestCohortName())).single();
   const { data: rows } = await sb
     .from("brief_history")
     .select("snapshot_date, insights, metrics")

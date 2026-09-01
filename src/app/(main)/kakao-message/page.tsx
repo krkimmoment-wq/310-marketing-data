@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getLatestCohortName } from "@/lib/cohorts";
 import KakaoMsgForm from "./KakaoMsgForm";
 import KakaoMsgRow from "./KakaoMsgRow";
 
@@ -15,8 +16,9 @@ export default async function KakaoMessagePage({
   searchParams: Promise<{ cohort?: string }>;
 }) {
   const { cohort: cohortName } = await searchParams;
+  const name = cohortName ?? (await getLatestCohortName());
   const sb = await createClient();
-  const { data: cohort } = await sb.from("cohorts").select("id").eq("name", cohortName ?? "14기").single();
+  const { data: cohort } = await sb.from("cohorts").select("id").eq("name", name).single();
   const { data: msgs } = await sb
     .from("kakao_message")
     .select("*")
@@ -42,7 +44,7 @@ export default async function KakaoMessagePage({
   return (
     <div style={DARK_BG} className="scanlines min-h-screen p-6 md:p-8 space-y-6 text-slate-100">
       <div className="flex items-center justify-between">
-        <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">💬 {cohortName ?? "14기"} 카카오 메시지</h1>
+        <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">💬 {name} 카카오 메시지</h1>
         <div className="text-right">
           <div className="text-xs text-slate-400">총 발송비용</div>
           <div className="text-xl font-extrabold text-slate-100">{totalCost.toLocaleString("ko-KR")}원</div>

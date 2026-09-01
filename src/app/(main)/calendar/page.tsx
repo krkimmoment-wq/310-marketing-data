@@ -1,4 +1,5 @@
 import { getCalendar } from "@/lib/calendar";
+import { getLatestCohortName } from "@/lib/cohorts";
 import CalDayCell from "./CalDayCell";
 
 export const dynamic = "force-dynamic";
@@ -16,11 +17,12 @@ export default async function CalendarPage({
   searchParams: Promise<{ cohort?: string }>;
 }) {
   const { cohort } = await searchParams;
-  const data = await getCalendar(cohort ?? "14기");
+  const name = cohort ?? (await getLatestCohortName());
+  const data = await getCalendar(name);
   if (!data) {
     return (
       <div style={DARK_BG} className="min-h-screen p-8 text-slate-300">
-        14기 데이터를 찾을 수 없습니다.
+        {name} 데이터를 찾을 수 없습니다.
       </div>
     );
   }

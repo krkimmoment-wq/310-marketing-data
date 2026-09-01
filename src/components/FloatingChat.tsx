@@ -19,7 +19,7 @@ export default function FloatingChat() {
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const sp = useSearchParams();
-  const cohort = sp.get("cohort") || "14기";
+  const cohort = sp.get("cohort") || ""; // 빈 값이면 서버가 최신 기수로 해석
 
   useEffect(() => {
     if (open) endRef.current?.scrollIntoView({ behavior: "smooth" });

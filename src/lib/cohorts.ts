@@ -21,6 +21,12 @@ export async function getCohortsChrono(): Promise<CohortRow[]> {
   });
 }
 
+// 최신 기수 이름 (모든 페이지·라우트의 기본값 통일용). 기수 없으면 "14기" 최후 폴백
+export async function getLatestCohortName(): Promise<string> {
+  const chrono = await getCohortsChrono();
+  return chrono[0]?.name ?? "14기";
+}
+
 // 선택된 기수(없으면 최신)와 그 직전(시간상 바로 이전) 기수를 반환
 export async function resolveCohortPair(selected?: string): Promise<{
   chrono: CohortRow[];
