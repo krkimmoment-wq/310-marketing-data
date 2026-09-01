@@ -23,20 +23,27 @@ export default async function RegistrationsPage({
     sb.from("registrations").select("*").eq("cohort_id", cohort?.id).order("reg_date", { ascending: true }),
     sb.from("cohorts").select("id, name"),
     // 이 기수로 도착한 기수이전자 (매출 요약에 가산)
-    sb.from("registrations").select("payment, is_refund, amount, pay_platform").eq("transfer_to_cohort_id", cohort?.id),
+    sb.from("registrations").select("payment, is_refund, amount, refund_amount, pay_platform").eq("transfer_to_cohort_id", cohort?.id),
   ]);
 
   const list = regs ?? [];
-  const arrivals = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund);
+  const arrivals = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료"); // 환불자 포함(net으로 잔액 반영)
 
   // 결제 플랫폼별 매출 (사진 재현): 매출=입금완료&미기수이전(환불 포함) / 환불=is_refund 차감 / 순매출=매출-환불
   const PLATFORMS = ["홈페이지", "유튜브", "기타"];
+  // 실제 환불액: is_refund인데 환불액 미지정(0)이면 전액환불로 간주(원결제액 전액)
+  const effRefund = (r: { is_refund?: boolean; amount?: number | null; refund_amount?: number | null }) =>
+    r.is_refund ? ((r.refund_amount ?? 0) > 0 ? (r.refund_amount ?? 0) : (r.amount ?? 0)) : 0;
   const platRow = (plat: string) => {
     const rows = list.filter((r) => (r.pay_platform ?? "홈페이지") === plat);
+    const arr = arrivals.filter((a) => (a.pay_platform ?? "홈페이지") === plat);
+    // 매출액 = 원결제 합(입금완료·미이전, 환불자 포함) / 환불 = 실제 환불액 합 / 순매출 = 매출−환불 = Σ(amount−refund_amount)
     const gross =
       rows.filter((r) => r.payment === "입금완료" && !r.is_transfer).reduce((s, r) => s + (r.amount ?? 0), 0) +
-      arrivals.filter((a) => (a.pay_platform ?? "홈페이지") === plat).reduce((s, a) => s + (a.amount ?? 0), 0);
-    const refund = rows.filter((r) => r.is_refund && !r.is_transfer).reduce((s, r) => s + (r.amount ?? 0), 0);
+      arr.reduce((s, a) => s + (a.amount ?? 0), 0);
+    const refund =
+      rows.filter((r) => r.is_refund && !r.is_transfer).reduce((s, r) => s + effRefund(r), 0) +
+      arr.reduce((s, a) => s + effRefund(a), 0);
     return { plat, gross, refund, net: gross - refund };
   };
   const platRows = PLATFORMS.map(platRow);

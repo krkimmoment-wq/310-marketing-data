@@ -42,27 +42,32 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
   if (!cohort) return null;
 
   const [{ data: regs }, { data: arrivalsRaw }, { data: ads }] = await Promise.all([
-    sb.from("registrations").select("section, payment, is_refund, is_transfer, amount").eq("cohort_id", cohort.id),
+    sb.from("registrations").select("section, payment, is_refund, is_transfer, amount, refund_amount").eq("cohort_id", cohort.id),
     // 이 기수로 '도착'한 기수이전자 (레코드는 출발 기수에 있으나 transfer_to_cohort_id가 이 기수)
-    sb.from("registrations").select("section, payment, is_refund, amount").eq("transfer_to_cohort_id", cohort.id),
+    sb.from("registrations").select("section, payment, is_refund, amount, refund_amount").eq("transfer_to_cohort_id", cohort.id),
     sb.from("ad_spend").select("cost").eq("cohort_id", cohort.id),
   ]);
 
-  // 정상 실등록(이전자 제외) + 이 기수로 도착한 이전자(입금완료·미환불, 무결제 0원도 인원 포함)
+  // ── 인원용: 실등록(환불자 제외). 무결제 이전자는 인원 포함(수강함), 부분환불자는 인원 제외(수강 안 함)
   const normal = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer);
   const arrivals = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund);
   const real = [...normal, ...arrivals];
-  const arrivalRevenue = arrivals.reduce((s, r) => s + (r.amount ?? 0), 0);
+  // ── 매출용 net: 부분환불 잔액 반영(amount−refund_amount). is_refund인데 환불액 미지정(0)이면 전액환불로 간주(0)
+  const net = (r: { is_refund?: boolean; amount?: number | null; refund_amount?: number | null }) =>
+    r.is_refund && (r.refund_amount ?? 0) === 0 ? 0 : (r.amount ?? 0) - (r.refund_amount ?? 0);
+  // 매출은 환불자 포함(잔액 반영), 이전자는 도착 기수로 귀속되므로 own에서 제외
+  const ownRevRows = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_transfer);
+  const arrivalRevenue = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료").reduce((s, r) => s + net(r), 0);
   const bySection: Record<string, number> = {};
   const totalAd = (ads ?? []).reduce((s, a) => s + (a.cost ?? 0), 0);
 
   let realRegs: number;
   let totalRevenue: number;
   if ((regs ?? []).length > 0) {
-    // 개별 명단 있는 기수(14기~): 정상 실등록 + 도착 이전자
+    // 개별 명단 있는 기수(14기~): 인원=정상+도착이전(환불 제외) / 매출=Σ(amount−refund_amount)+도착이전 net
     for (const r of real) bySection[r.section] = (bySection[r.section] ?? 0) + 1;
     realRegs = real.length;
-    totalRevenue = real.reduce((s, r) => s + (r.amount ?? 0), 0); // 등록 금액 합
+    totalRevenue = ownRevRows.reduce((s, r) => s + net(r), 0) + arrivalRevenue;
   } else {
     // 명단 없는 완주 기수(13기): cohort_daily 누적 + revenue, + 도착 이전자 가산
     const [{ data: daily }, { data: revs }] = await Promise.all([
@@ -71,10 +76,10 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
     ]);
     let cum = 0;
     for (const d of daily ?? []) {
-      const net = (d.new_count ?? 0) - (d.refund_count ?? 0);
-      cum += net;
+      const netCd = (d.new_count ?? 0) - (d.refund_count ?? 0);
+      cum += netCd;
       const sec = (d.section ?? "").replace(/\s/g, ""); // "1차 EB" → "1차EB"
-      bySection[sec] = (bySection[sec] ?? 0) + net;
+      bySection[sec] = (bySection[sec] ?? 0) + netCd;
     }
     for (const r of arrivals) bySection[r.section] = (bySection[r.section] ?? 0) + 1;
     realRegs = cum + arrivals.length;

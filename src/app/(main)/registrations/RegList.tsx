@@ -17,6 +17,7 @@ type Reg = {
   is_refund?: boolean;
   is_transfer?: boolean;
   transfer_to_cohort_id?: number | null;
+  refund_amount?: number | null;
 };
 
 // 구간 정렬 순서 (캠페인 흐름순)
@@ -126,10 +127,14 @@ export default function RegList({ regs, cohorts }: { regs: Reg[]; cohorts: { id:
             </thead>
             <tbody>
               {groups.map(({ sec, rows }) => {
-                // 소계 = 실매출(입금완료&미환불&미기수이전)만 — 미입금·환불·기수이전 제외
+                // 실매출 = Σ(원결제−환불액), 입금완료·미이전 (부분환불 잔액 포함, 전액환불 0)
+                // 인원(realCount)은 환불자 제외 — 매출과 분리
                 const subtotal = rows
-                  .filter((r) => statusOf(r) === "입금완료")
-                  .reduce((s, r) => s + (r.amount ?? 0), 0);
+                  .filter((r) => r.payment === "입금완료" && !r.is_transfer)
+                  .reduce((s, r) => {
+                    const eff = r.is_refund ? ((r.refund_amount ?? 0) > 0 ? (r.refund_amount ?? 0) : (r.amount ?? 0)) : 0;
+                    return s + ((r.amount ?? 0) - eff);
+                  }, 0);
                 const realCount = rows.filter((r) => statusOf(r) === "입금완료").length;
                 return (
                   <Fragment key={sec}>
