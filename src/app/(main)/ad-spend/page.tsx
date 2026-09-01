@@ -19,9 +19,11 @@ export default async function AdSpendPage({
   const name = cohortName ?? (await getLatestCohortName());
   const sb = await createClient();
   const { data: cohort } = await sb.from("cohorts").select("id").eq("name", name).single();
-  const [{ data: ads }, { data: regs }] = await Promise.all([
+  const [{ data: ads }, { data: regs }, { data: arrivals }] = await Promise.all([
     sb.from("ad_spend").select("*").eq("cohort_id", cohort?.id).order("period_start", { ascending: true }),
     sb.from("registrations").select("payment, is_refund, is_transfer").eq("cohort_id", cohort?.id),
+    // 이 기수로 도착한 기수이전자 (CAC 분모 실등록에 포함)
+    sb.from("registrations").select("payment, is_refund").eq("transfer_to_cohort_id", cohort?.id),
   ]);
 
   const list = ads ?? [];
@@ -30,7 +32,9 @@ export default async function AdSpendPage({
   // 파생지표 — CPC(클릭당) / CTR(클릭률) / CPM(1000노출당) / CAC(등록당)
   const imp = list.reduce((s, a) => s + (a.impressions ?? 0), 0);
   const clk = list.reduce((s, a) => s + (a.clicks ?? 0), 0);
-  const realN = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer).length;
+  const realN =
+    (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer).length +
+    (arrivals ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund).length;
   const cpc = clk ? Math.round(total / clk) : 0;
   const ctr = imp ? Math.round((clk / imp) * 1000) / 10 : 0;
   const cpm = imp ? Math.round((total / imp) * 1000) : 0;

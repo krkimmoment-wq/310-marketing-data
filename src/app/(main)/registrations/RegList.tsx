@@ -16,6 +16,7 @@ type Reg = {
   payment: string;
   is_refund?: boolean;
   is_transfer?: boolean;
+  transfer_to_cohort_id?: number | null;
 };
 
 // 구간 정렬 순서 (캠페인 흐름순)
@@ -34,7 +35,7 @@ const CH_OPTS: { v: string; label: string }[] = [
 ];
 const selCls = "px-3 py-2.5 rounded-lg border border-slate-700 bg-slate-900/60 text-slate-100 text-sm outline-none focus:border-cyan-400";
 
-export default function RegList({ regs }: { regs: Reg[] }) {
+export default function RegList({ regs, cohorts }: { regs: Reg[]; cohorts: { id: number; name: string }[] }) {
   const [q, setQ] = useState("");
   const [pay, setPay] = useState("전체");
   const [status, setStatus] = useState("전체");
@@ -141,7 +142,7 @@ export default function RegList({ regs }: { regs: Reg[] }) {
                       </td>
                     </tr>
                     {rows.map((r) => (
-                      <RegRow key={r.id} r={r} />
+                      <RegRow key={r.id} r={r} cohorts={cohorts} />
                     ))}
                   </Fragment>
                 );

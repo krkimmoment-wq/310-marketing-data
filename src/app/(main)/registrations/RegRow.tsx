@@ -36,11 +36,12 @@ export type Reg = {
   payment: string;
   is_refund?: boolean;
   is_transfer?: boolean;
+  transfer_to_cohort_id?: number | null;
 };
 
 const inputCls = "w-full px-2 py-1 rounded bg-slate-900/60 border border-slate-700 text-slate-100 outline-none focus:border-cyan-400 text-xs";
 
-export default function RegRow({ r }: { r: Reg }) {
+export default function RegRow({ r, cohorts }: { r: Reg; cohorts: { id: number; name: string }[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -53,6 +54,7 @@ export default function RegRow({ r }: { r: Reg }) {
     sns_channel: r.sns_channel ?? "",
     pay_platform: r.pay_platform ?? "홈페이지",
     status: statusOf(r),
+    transfer_to: r.transfer_to_cohort_id ? String(r.transfer_to_cohort_id) : "",
   });
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -72,6 +74,8 @@ export default function RegRow({ r }: { r: Reg }) {
         sns_channel: form.sns_channel || null,
         pay_platform: form.pay_platform,
         ...STATUS_MAP[form.status],
+        // 기수이전일 때만 도착 기수 저장, 그 외엔 null
+        transfer_to_cohort_id: form.status === "기수이전" ? Number(form.transfer_to) || null : null,
       })
       .eq("id", r.id);
     setSaving(false);
@@ -106,6 +110,7 @@ export default function RegRow({ r }: { r: Reg }) {
       sns_channel: r.sns_channel ?? "",
       pay_platform: r.pay_platform ?? "홈페이지",
       status: statusOf(r),
+      transfer_to: r.transfer_to_cohort_id ? String(r.transfer_to_cohort_id) : "",
     });
     setEditing(false);
   }
@@ -121,7 +126,12 @@ export default function RegRow({ r }: { r: Reg }) {
         <td className="px-4 py-2 text-slate-300">{r.channel === "tally" ? "🅰️ Tally" : "🅱️ 카카오"}</td>
         <td className="px-4 py-2 text-slate-300">{r.sns_channel ?? "-"}</td>
         <td className="px-4 py-2 text-slate-300">{r.pay_platform ?? "홈페이지"}</td>
-        <td className={`px-4 py-2 font-medium ${st.cls}`}>{st.label}</td>
+        <td className={`px-4 py-2 font-medium ${st.cls}`}>
+          {st.label}
+          {r.is_transfer && r.transfer_to_cohort_id
+            ? ` → ${cohorts.find((c) => c.id === r.transfer_to_cohort_id)?.name ?? "?"}`
+            : ""}
+        </td>
         <td className="px-4 py-2">
           <button
             onClick={() => setEditing(true)}
@@ -171,6 +181,19 @@ export default function RegRow({ r }: { r: Reg }) {
         <select value={form.status} onChange={(e) => set("status", e.target.value)} className={inputCls}>
           {STATUSES.map((s) => <option key={s}>{s}</option>)}
         </select>
+        {form.status === "기수이전" && (
+          <select
+            value={form.transfer_to}
+            onChange={(e) => set("transfer_to", e.target.value)}
+            className={`${inputCls} mt-1`}
+            title="도착 기수 (이 이전자의 매출·인원이 귀속될 기수)"
+          >
+            <option value="">도착 기수…</option>
+            {cohorts.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
       </td>
       <td className="px-3 py-2 whitespace-nowrap">
         <button onClick={save} disabled={saving} className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-bold disabled:opacity-50">

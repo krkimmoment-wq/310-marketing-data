@@ -19,19 +19,23 @@ export default async function RegistrationsPage({
   const name = cohortName ?? (await getLatestCohortName());
   const sb = await createClient();
   const { data: cohort } = await sb.from("cohorts").select("id").eq("name", name).single();
-  const { data: regs } = await sb
-    .from("registrations")
-    .select("*")
-    .eq("cohort_id", cohort?.id)
-    .order("reg_date", { ascending: true });
+  const [{ data: regs }, { data: allCohorts }, { data: arrivalsRaw }] = await Promise.all([
+    sb.from("registrations").select("*").eq("cohort_id", cohort?.id).order("reg_date", { ascending: true }),
+    sb.from("cohorts").select("id, name"),
+    // 이 기수로 도착한 기수이전자 (매출 요약에 가산)
+    sb.from("registrations").select("payment, is_refund, amount, pay_platform").eq("transfer_to_cohort_id", cohort?.id),
+  ]);
 
   const list = regs ?? [];
+  const arrivals = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund);
 
   // 결제 플랫폼별 매출 (사진 재현): 매출=입금완료&미기수이전(환불 포함) / 환불=is_refund 차감 / 순매출=매출-환불
   const PLATFORMS = ["홈페이지", "유튜브", "기타"];
   const platRow = (plat: string) => {
     const rows = list.filter((r) => (r.pay_platform ?? "홈페이지") === plat);
-    const gross = rows.filter((r) => r.payment === "입금완료" && !r.is_transfer).reduce((s, r) => s + (r.amount ?? 0), 0);
+    const gross =
+      rows.filter((r) => r.payment === "입금완료" && !r.is_transfer).reduce((s, r) => s + (r.amount ?? 0), 0) +
+      arrivals.filter((a) => (a.pay_platform ?? "홈페이지") === plat).reduce((s, a) => s + (a.amount ?? 0), 0);
     const refund = rows.filter((r) => r.is_refund && !r.is_transfer).reduce((s, r) => s + (r.amount ?? 0), 0);
     return { plat, gross, refund, net: gross - refund };
   };
@@ -78,7 +82,7 @@ export default async function RegistrationsPage({
 
       <RegForm cohortId={cohort?.id} />
 
-      <RegList regs={list} />
+      <RegList regs={list} cohorts={allCohorts ?? []} />
     </div>
   );
 }

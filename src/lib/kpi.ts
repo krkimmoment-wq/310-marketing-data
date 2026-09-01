@@ -41,24 +41,30 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
   const { data: cohort } = await sb.from("cohorts").select("*").eq("name", cohortName).single();
   if (!cohort) return null;
 
-  const [{ data: regs }, { data: ads }] = await Promise.all([
+  const [{ data: regs }, { data: arrivalsRaw }, { data: ads }] = await Promise.all([
     sb.from("registrations").select("section, payment, is_refund, is_transfer, amount").eq("cohort_id", cohort.id),
+    // 이 기수로 '도착'한 기수이전자 (레코드는 출발 기수에 있으나 transfer_to_cohort_id가 이 기수)
+    sb.from("registrations").select("section, payment, is_refund, amount").eq("transfer_to_cohort_id", cohort.id),
     sb.from("ad_spend").select("cost").eq("cohort_id", cohort.id),
   ]);
 
-  const real = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer);
+  // 정상 실등록(이전자 제외) + 이 기수로 도착한 이전자(입금완료·미환불, 무결제 0원도 인원 포함)
+  const normal = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer);
+  const arrivals = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund);
+  const real = [...normal, ...arrivals];
+  const arrivalRevenue = arrivals.reduce((s, r) => s + (r.amount ?? 0), 0);
   const bySection: Record<string, number> = {};
   const totalAd = (ads ?? []).reduce((s, a) => s + (a.cost ?? 0), 0);
 
   let realRegs: number;
   let totalRevenue: number;
-  if (real.length > 0) {
-    // 개별 명단 있는 기수(14기~): registrations 기준
+  if ((regs ?? []).length > 0) {
+    // 개별 명단 있는 기수(14기~): 정상 실등록 + 도착 이전자
     for (const r of real) bySection[r.section] = (bySection[r.section] ?? 0) + 1;
     realRegs = real.length;
     totalRevenue = real.reduce((s, r) => s + (r.amount ?? 0), 0); // 등록 금액 합
   } else {
-    // 명단 없는 완주 기수(13기): cohort_daily 누적 + revenue 테이블로 집계
+    // 명단 없는 완주 기수(13기): cohort_daily 누적 + revenue, + 도착 이전자 가산
     const [{ data: daily }, { data: revs }] = await Promise.all([
       sb.from("cohort_daily").select("section, new_count, refund_count").eq("cohort_id", cohort.id),
       sb.from("revenue").select("total_paid").eq("cohort_id", cohort.id),
@@ -70,8 +76,9 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
       const sec = (d.section ?? "").replace(/\s/g, ""); // "1차 EB" → "1차EB"
       bySection[sec] = (bySection[sec] ?? 0) + net;
     }
-    realRegs = cum;
-    totalRevenue = (revs ?? []).reduce((s, r) => s + (r.total_paid ?? 0), 0);
+    for (const r of arrivals) bySection[r.section] = (bySection[r.section] ?? 0) + 1;
+    realRegs = cum + arrivals.length;
+    totalRevenue = (revs ?? []).reduce((s, r) => s + (r.total_paid ?? 0), 0) + arrivalRevenue;
   }
   const roas = totalAd ? Math.round((totalRevenue / totalAd) * 10) / 10 : 0;
   const cac = realRegs ? Math.round(totalAd / realRegs) : 0;
