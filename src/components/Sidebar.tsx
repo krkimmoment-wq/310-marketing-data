@@ -8,6 +8,7 @@ import CohortSelector from "./CohortSelector";
 
 const NAV = [
   { href: "/", label: "대시보드", icon: "📊" },
+  { href: "/daily", label: "Day별 비교", icon: "🧮" },
   { href: "/registrations", label: "등록 관리", icon: "📝" },
   { href: "/ad-spend", label: "광고비", icon: "💸" },
   { href: "/kakao-message", label: "카카오 메시지", icon: "💬" },

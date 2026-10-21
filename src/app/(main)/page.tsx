@@ -3,6 +3,8 @@ import { getDayComparison } from "@/lib/comparison";
 import { resolveCohortPair } from "@/lib/cohorts";
 import { getDataHealth } from "@/lib/dataHealth";
 import DataHealthCard from "@/components/DataHealthCard";
+import { getDayTable } from "@/lib/dayTable";
+import DayTable from "@/components/DayTable";
 import CountUp from "@/components/CountUp";
 import AiBriefing from "@/components/AiBriefing";
 import DayComparisonChart from "@/components/DayComparisonChart";
@@ -34,6 +36,7 @@ export default async function Dashboard({
 
   const maxSection = Math.max(1, ...SECTIONS.map((s) => kpi.bySection[s] ?? 0));
   const health = await getDataHealth();
+  const dayTable = await getDayTable(); // 기본 = 모집 시작한 기수 중 최근 4개
   const dayCmp = await getDayComparison(
     previousName ? [currentName, previousName] : [currentName]
   );
@@ -112,6 +115,9 @@ export default async function Dashboard({
           </div>
         ))}
       </div>
+
+      {/* 기수 × Day 일별 등록 비교표 (기본 노출) */}
+      <DayTable data={dayTable.data} moreHref="/daily" />
 
       {/* 진척 게이지 */}
       <div className="jarvis-card p-5 mb-6 fade-up" style={{ animationDelay: "0.3s" }}>
