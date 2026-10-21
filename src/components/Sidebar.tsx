@@ -20,11 +20,11 @@ const NAV = [
   { href: "/cohorts", label: "기수 관리", icon: "⚙️" },
 ];
 
-export default function Sidebar({ cohorts = [] }: { cohorts?: { id: number; name: string }[] }) {
+export default function Sidebar({ cohorts = [], defaultCohort }: { cohorts?: { id: number; name: string }[]; defaultCohort?: string }) {
   const path = usePathname();
   const router = useRouter();
   const sp = useSearchParams();
-  const cohort = sp.get("cohort") ?? cohorts[0]?.name ?? "";
+  const cohort = sp.get("cohort") ?? defaultCohort ?? cohorts[0]?.name ?? "";
   const q = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
   const [open, setOpen] = useState(false); // 모바일 드로어
 
@@ -58,7 +58,7 @@ export default function Sidebar({ cohorts = [] }: { cohorts?: { id: number; name
         <div className="text-xs text-slate-400 mt-0.5">모멘트핏 운영</div>
       </div>
       <div className="pt-3">
-        <CohortSelector cohorts={cohorts} />
+        <CohortSelector cohorts={cohorts} defaultCohort={defaultCohort} />
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {NAV.map((n) => {

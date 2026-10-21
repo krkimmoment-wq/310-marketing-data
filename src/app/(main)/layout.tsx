@@ -1,6 +1,7 @@
 import Sidebar from "@/components/Sidebar";
 import FloatingChat from "@/components/FloatingChat";
 import { createClient } from "@/lib/supabase/server";
+import { pickCurrentCohort } from "@/lib/cohorts";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -15,16 +16,17 @@ export default async function MainLayout({
   if (!claimsData?.claims) redirect("/login");
 
   // 시간순(최신 우선) 정렬 — id 순서는 시간순이 아님(14기=1·13기=2·15기=4).
-  // pre_open 내림차순으로 정렬해 선택기 기본값(cohorts[0])이 최신 기수가 되게 한다.
+  // 목록은 최신순, 기본 선택은 "모집을 이미 시작한 기수 중 최신"(아직 시작 전인 다음 기수 제외)
   const { data: cohortsRaw } = await sb.from("cohorts").select("id,name,pre_open");
-  const cohorts = (cohortsRaw ?? [])
+  const sorted = (cohortsRaw ?? [])
     .slice()
-    .sort((a, b) => (b.pre_open ?? "").localeCompare(a.pre_open ?? ""))
-    .map((c) => ({ id: c.id, name: c.name }));
+    .sort((a, b) => (b.pre_open ?? "").localeCompare(a.pre_open ?? ""));
+  const cohorts = sorted.map((c) => ({ id: c.id, name: c.name }));
+  const defaultCohort = pickCurrentCohort(sorted)?.name;
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar cohorts={cohorts} />
+      <Sidebar cohorts={cohorts} defaultCohort={defaultCohort} />
       {/* 배경·패딩은 각 페이지가 직접 결정 (대시보드=다크 / 입력=밝게) */}
       <main className="flex-1 overflow-x-auto min-w-0">{children}</main>
       {/* 우측 하단 플로팅 AI 챗봇 (모든 페이지) */}

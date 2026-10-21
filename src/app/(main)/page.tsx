@@ -1,6 +1,8 @@
 import { getKpi } from "@/lib/kpi";
 import { getDayComparison } from "@/lib/comparison";
 import { resolveCohortPair } from "@/lib/cohorts";
+import { getDataHealth } from "@/lib/dataHealth";
+import DataHealthCard from "@/components/DataHealthCard";
 import CountUp from "@/components/CountUp";
 import AiBriefing from "@/components/AiBriefing";
 import DayComparisonChart from "@/components/DayComparisonChart";
@@ -31,6 +33,7 @@ export default async function Dashboard({
     );
 
   const maxSection = Math.max(1, ...SECTIONS.map((s) => kpi.bySection[s] ?? 0));
+  const health = await getDataHealth();
   const dayCmp = await getDayComparison(
     previousName ? [currentName, previousName] : [currentName]
   );
@@ -65,6 +68,9 @@ export default async function Dashboard({
 
       {/* AI 브리핑 (Gemini — 키 없으면 규칙 기반 fallback) */}
       <AiBriefing fallback={kpi.insights} cohort={currentName} />
+
+      {/* 데이터 점검 — 수집 중단·입력 누락·품질 이상 자동 표시 */}
+      <DataHealthCard items={health.items} />
 
       {/* D-Day 8분기점 타임라인 */}
       <div className="jarvis-card p-4 mb-6 fade-up" style={{ animationDelay: "0.08s" }}>

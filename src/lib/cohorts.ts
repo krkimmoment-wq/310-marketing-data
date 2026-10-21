@@ -21,13 +21,29 @@ export async function getCohortsChrono(): Promise<CohortRow[]> {
   });
 }
 
-// 최신 기수 이름 (모든 페이지·라우트의 기본값 통일용). 기수 없으면 "14기" 최후 폴백
-export async function getLatestCohortName(): Promise<string> {
-  const chrono = await getCohortsChrono();
-  return chrono[0]?.name ?? "14기";
+// 오늘 날짜(KST, YYYY-MM-DD)
+export function kstToday(): string {
+  return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
-// 선택된 기수(없으면 최신)와 그 직전(시간상 바로 이전) 기수를 반환
+// 현재 기수 = 모집을 이미 시작한(pre_open ≤ 오늘) 기수 중 가장 최근.
+// 아직 시작 안 한 다음 기수(예: 사전등록 전인 17기)를 "최신"으로 잡으면 빈 화면이 되므로 제외한다.
+// 시작한 기수가 하나도 없으면 가장 먼저 시작할 기수로 폴백.
+export function pickCurrentCohort<T extends { pre_open: string | null; class_start?: string | null }>(
+  chronoDesc: T[],
+  today: string = kstToday()
+): T | undefined {
+  const key = (c: T) => c.pre_open ?? c.class_start ?? "";
+  return chronoDesc.find((c) => key(c) !== "" && key(c) <= today) ?? chronoDesc[chronoDesc.length - 1];
+}
+
+// 현재 기수 이름 (모든 페이지·라우트의 기본값 통일용). 기수 없으면 "14기" 최후 폴백
+export async function getLatestCohortName(): Promise<string> {
+  const chrono = await getCohortsChrono();
+  return pickCurrentCohort(chrono)?.name ?? "14기";
+}
+
+// 선택된 기수(없으면 현재 기수)와 그 직전(시간상 바로 이전) 기수를 반환
 export async function resolveCohortPair(selected?: string): Promise<{
   chrono: CohortRow[];
   latest: string;
@@ -35,7 +51,7 @@ export async function resolveCohortPair(selected?: string): Promise<{
   previousName: string | null;
 }> {
   const chrono = await getCohortsChrono(); // 최신 → 과거
-  const latest = chrono[0]?.name ?? "14기";
+  const latest = pickCurrentCohort(chrono)?.name ?? "14기";
   const currentName = selected ?? latest;
   const idx = chrono.findIndex((c) => c.name === currentName);
   const previousName = idx >= 0 && idx + 1 < chrono.length ? chrono[idx + 1].name : null;

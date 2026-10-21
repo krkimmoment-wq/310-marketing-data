@@ -2,6 +2,7 @@ import { getKpi } from "@/lib/kpi";
 import { getDayComparison } from "@/lib/comparison";
 import { sectionDailyRows } from "@/lib/daily";
 import { createClient } from "@/lib/supabase/server";
+import { pickCurrentCohort } from "@/lib/cohorts";
 import DayComparisonChart from "@/components/DayComparisonChart";
 import CompareSelector from "./CompareSelector";
 
@@ -62,13 +63,15 @@ function dailyAvg(rows: Row[], cohortId: number) {
 export default async function ComparePage({ searchParams }: { searchParams: Promise<{ a?: string; b?: string }> }) {
   const sb = await createClient();
   const { data: cohorts } = await sb.from("cohorts").select("id, name, pre_open");
-  // 시간순(최신 우선) — 기본 A=최신·B=직전 (id 순서는 시간순이 아님)
+  // 시간순(최신 우선) — 기본 A=현재 기수(모집 시작한 기수 중 최신)·B=그 직전 (id 순서는 시간순이 아님)
   const list = (cohorts ?? [])
     .slice()
     .sort((x, y) => (y.pre_open ?? "").localeCompare(x.pre_open ?? ""));
   const { a: aParam, b: bParam } = await searchParams;
-  const aName = aParam ?? list[0]?.name ?? "14기";
-  const bName = bParam ?? list[1]?.name ?? "13기";
+  const cur = pickCurrentCohort(list);
+  const curIdx = cur ? list.indexOf(cur) : 0;
+  const aName = aParam ?? cur?.name ?? "14기";
+  const bName = bParam ?? list[curIdx + 1]?.name ?? "13기";
   const aId = list.find((c) => c.name === aName)?.id;
   const bId = list.find((c) => c.name === bName)?.id;
 

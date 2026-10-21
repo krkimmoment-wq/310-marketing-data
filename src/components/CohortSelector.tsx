@@ -2,11 +2,11 @@
 // 전역 기수 선택기 — 선택 시 ?cohort= 로 모든 화면에 반영 (15기 추가돼도 자동)
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-export default function CohortSelector({ cohorts }: { cohorts: { id: number; name: string }[] }) {
+export default function CohortSelector({ cohorts, defaultCohort }: { cohorts: { id: number; name: string }[]; defaultCohort?: string }) {
   const path = usePathname();
   const router = useRouter();
   const sp = useSearchParams();
-  const current = sp.get("cohort") ?? cohorts[0]?.name ?? "14기";
+  const current = sp.get("cohort") ?? defaultCohort ?? cohorts[0]?.name ?? "14기";
 
   function change(name: string) {
     const params = new URLSearchParams(sp.toString());
