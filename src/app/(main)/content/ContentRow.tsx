@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export const CATEGORIES = ["후기", "숏폼", "공지", "특강", "커뮤니티"];
+// 기수×Day 표 뱃지와 연결: 특강🎤 · 커뮤니티📝 · 프로모션💰 · 숏폼⚡ · 롱폼📺 · 나머지📌
+export const CATEGORIES = ["특강", "커뮤니티", "프로모션", "숏폼", "롱폼", "후기", "공지", "이벤트", "기타"];
 export const PLATFORMS = ["유튜브", "인스타그램", "틱톡", "네이버TV", "카카오톡", "홈페이지"];
 export const STATUSES = ["✅ 완료", "📝 예정", "🏃 진행"];
 

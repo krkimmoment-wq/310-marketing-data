@@ -49,7 +49,9 @@ export type DayRaw = {
   cohorts: CohortFull[];
   daily: Record<number, { date: string; new_count: number; refund_count: number }[]>;
   ads: { day: string; views: number | null }[]; // 유튜브 트래픽 ADVERTISING 일별 조회
-  videos: { pub_date: string; kind: string | null; title: string | null; views: number | null }[];
+  videos: { video_id: string; pub_date: string; kind: string | null; title: string | null; views: number | null }[];
+  videoDaily?: { video_id: string; day: string; views: number | null }[]; // 영상별 일별 조회 (발행 후 14일)
+  ig?: { post_date: string; media_type: string | null; caption: string | null; permalink: string | null; like_count: number | null; comments_count: number | null }[];
   bitly: { click_date: string; clicks: number | null }[];
   kakao: { cohort_id: number; sent_date: string | null; title: string | null; sent_count: number | null; click_count: number | null }[];
   content: { cohort_id: number; pub_date: string | null; category: string | null; title: string | null }[];
@@ -72,11 +74,32 @@ export function bandOf(c: CohortFull, d: string): string {
   return "추가";
 }
 
+// 영상별 "발행 후 첫 7일 조회" (발행일 포함 7일). 7일째 데이터가 아직 없으면 complete=false
+export function firstWeekViews(raw: DayRaw): Map<string, { views: number; complete: boolean }> {
+  const pub = new Map(raw.videos.map((v) => [v.video_id, v.pub_date]));
+  const out = new Map<string, { views: number; complete: boolean }>();
+  for (const r of raw.videoDaily ?? []) {
+    const p = pub.get(r.video_id);
+    if (!p) continue;
+    const k = diffDays(p, r.day);
+    if (k < 0 || k > 6) continue;
+    const cur = out.get(r.video_id) ?? { views: 0, complete: false };
+    cur.views += r.views ?? 0;
+    if (k === 6) cur.complete = true;
+    out.set(r.video_id, cur);
+  }
+  return out;
+}
+
 export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): DayTableData {
   const adsByDay = new Map<string, number>();
   for (const a of raw.ads) if ((a.views ?? 0) > 0) adsByDay.set(a.day, (adsByDay.get(a.day) ?? 0) + (a.views ?? 0));
   const vidsByDay = new Map<string, DayRaw["videos"]>();
   for (const v of raw.videos) vidsByDay.set(v.pub_date, [...(vidsByDay.get(v.pub_date) ?? []), v]);
+  const week1 = firstWeekViews(raw);
+  const igByDay = new Map<string, NonNullable<DayRaw["ig"]>>();
+  for (const m of raw.ig ?? [])
+    if (m.media_type === "IMAGE" || m.media_type === "CAROUSEL_ALBUM") igByDay.set(m.post_date, [...(igByDay.get(m.post_date) ?? []), m]);
   const clicksByDay = new Map<string, number>();
   for (const b of raw.bitly) clicksByDay.set(b.click_date, b.clicks ?? 0);
 
@@ -125,8 +148,11 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
       const actions: DayAction[] = [];
       const adv = adsByDay.get(date);
       if (adv) actions.push({ kind: "pool", text: `유튜브 유료 노출(프로모션·광고) 조회 ${fmt(adv)}` });
-      for (const v of vidsByDay.get(date) ?? [])
-        actions.push({ kind: v.kind === "롱폼" ? "long" : "short", text: `${v.kind ?? "영상"} · ${v.title ?? ""} (현재 조회 ${fmt(v.views)})` });
+      for (const v of vidsByDay.get(date) ?? []) {
+        const w = week1.get(v.video_id);
+        const viewTxt = w ? `첫 7일 조회 ${fmt(w.views)}${w.complete ? "" : " (집계 중)"}` : `현재 조회 ${fmt(v.views)}`;
+        actions.push({ kind: v.kind === "롱폼" ? "long" : "short", text: `${v.kind ?? "영상"} · ${v.title ?? ""} (${viewTxt})` });
+      }
       for (const k of cohortKakao.filter((k) => k.sent_date === date)) {
         const isSpecial = (k.title ?? "").includes("특강");
         actions.push({
@@ -134,8 +160,19 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
           text: `카톡 · ${k.title ?? ""} (발송 ${fmt(k.sent_count)} · 클릭 ${fmt(k.click_count)})`,
         });
       }
+      for (const m of igByDay.get(date) ?? [])
+        actions.push({
+          kind: "community",
+          text: `인스타 커뮤니티 · ${m.caption ? m.caption.slice(0, 40) : "게시물"} (좋아요 ${fmt(m.like_count)} · 댓글 ${fmt(m.comments_count)})`,
+        });
       for (const x of cohortContent.filter((x) => x.pub_date === date)) {
-        const kind: ActionKind = x.category === "특강" ? "special" : x.category === "커뮤니티" ? "community" : "memo";
+        const kind: ActionKind =
+          x.category === "특강" ? "special"
+          : x.category === "커뮤니티" ? "community"
+          : x.category === "프로모션" ? "pool"
+          : x.category === "숏폼" ? "short"
+          : x.category === "롱폼" ? "long"
+          : "memo";
         actions.push({ kind, text: `${x.category ?? "기록"} · ${x.title ?? ""}` });
       }
 
@@ -164,4 +201,38 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
     });
   }
   return { columns, maxDay: Math.max(0, ...columns.map((c) => c.lastDay)), today };
+}
+
+// 발행 후 첫 7일 조회 순위 — 표에 선택된 기수의 모집 기간에 발행된 영상만 (Day = 그 기수 기준)
+export type VideoRank = {
+  video_id: string;
+  title: string;
+  kind: string;
+  pub_date: string;
+  cohort: string;
+  day: number;
+  first7: number;
+  complete: boolean;
+};
+
+export function rankVideos(raw: DayRaw, table: DayTableData): VideoRank[] {
+  const w1 = firstWeekViews(raw);
+  const out: VideoRank[] = [];
+  for (const v of raw.videos) {
+    const w = w1.get(v.video_id);
+    if (!w) continue;
+    const col = table.columns.find((c) => v.pub_date >= c.day1 && diffDays(c.day1, v.pub_date) + 1 <= c.lastDay);
+    if (!col) continue;
+    out.push({
+      video_id: v.video_id,
+      title: v.title ?? "",
+      kind: v.kind ?? "영상",
+      pub_date: v.pub_date,
+      cohort: col.name,
+      day: diffDays(col.day1, v.pub_date) + 1,
+      first7: w.views,
+      complete: w.complete,
+    });
+  }
+  return out.sort((a, b) => b.first7 - a.first7);
 }
