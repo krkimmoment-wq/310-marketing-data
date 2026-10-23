@@ -19,11 +19,12 @@ export default function CohortSelector({ cohorts, defaultCohort }: { cohorts: { 
 
   return (
     <div className="px-3 pb-2">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">기수 선택</div>
+      <label htmlFor="cohort-select" className="block text-[11px] font-bold tracking-wider text-gray-600 mb-1">기수 선택</label>
       <select
+        id="cohort-select"
         value={current}
         onChange={(e) => change(e.target.value)}
-        className="w-full bg-slate-800 text-slate-100 text-sm font-bold rounded-lg px-3 py-2 border border-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+        className="w-full bg-white text-gray-900 text-sm font-bold rounded-lg px-3 py-2 border border-gray-300 outline-none focus:border-blue-600 cursor-pointer"
       >
         {cohorts.map((c) => (
           <option key={c.id} value={c.name}>

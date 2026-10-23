@@ -9,7 +9,7 @@ const COHORT_COLS = "id,name,pre_open,eb1_open,eb1_close,eb2_open,eb2_close,reg_
 // names 미지정 시 기본 = 모집을 이미 시작한 기수 중 최근 4개. 열 순서는 최신 → 과거.
 export async function getDayTable(
   names?: string[]
-): Promise<{ data: DayTableData; all: string[]; chosen: string[]; ranks: VideoRank[] }> {
+): Promise<{ data: DayTableData; all: string[]; chosen: string[]; ranks: VideoRank[]; raw: DayRaw | null }> {
   const sb = await createClient();
   const today = kstToday();
   const chrono = await getCohortsChrono();
@@ -20,7 +20,7 @@ export async function getDayTable(
   const chosenRows = chrono.filter((c) => wanted.includes(c.name));
   const ids = chosenRows.map((c) => c.id);
   const chosen = chosenRows.map((c) => c.name);
-  if (!ids.length) return { data: { columns: [], maxDay: 0, today }, all, chosen, ranks: [] };
+  if (!ids.length) return { data: { columns: [], maxDay: 0, today }, all, chosen, ranks: [], raw: null };
 
   const { data: cohortsRaw } = await sb.from("cohorts").select(COHORT_COLS).in("id", ids);
   const cohorts = (cohortsRaw ?? []) as CohortFull[];
@@ -29,8 +29,10 @@ export async function getDayTable(
   const minDate = startDates[0] ?? today;
   const maxDate = endDates[endDates.length - 1] ?? today;
 
-  const [dailyEntries, ads, videos, bitly, kakao, content] = await Promise.all([
+  const [dailyEntries, arrivalsRaw, ads, videos, bitly, kakao, content] = await Promise.all([
     Promise.all(ids.map(async (id) => [id, await cohortDailyRows(sb, id)] as const)),
+    // 다른 기수에서 이 기수로 옮겨온 인원(입금완료·미환불) — 대시보드 실등록과 같은 기준으로 누적에 포함
+    sb.from("registrations").select("transfer_to_cohort_id").in("transfer_to_cohort_id", ids).eq("payment", "입금완료").eq("is_refund", false),
     sb.from("yt_traffic_daily").select("day,views").eq("source", "ADVERTISING").gte("day", minDate).lte("day", maxDate).range(0, 9999),
     sb.from("yt_video").select("video_id,pub_date,kind,title,views").gte("pub_date", minDate).lte("pub_date", maxDate).range(0, 9999),
     sb.from("bitly_daily").select("click_date,clicks").gte("click_date", minDate).lte("click_date", maxDate).range(0, 9999),
@@ -47,9 +49,14 @@ export async function getDayTable(
     sb.from("ig_media").select("post_date,media_type,caption,permalink,like_count,comments_count").gte("post_date", minDate).lte("post_date", maxDate).range(0, 9999),
   ]);
 
+  const arrivals: Record<number, number> = {};
+  for (const r of (arrivalsRaw.data ?? []) as { transfer_to_cohort_id: number }[])
+    arrivals[r.transfer_to_cohort_id] = (arrivals[r.transfer_to_cohort_id] ?? 0) + 1;
+
   const raw: DayRaw = {
     cohorts,
     daily: Object.fromEntries(dailyEntries),
+    arrivals,
     ads: (ads.data ?? []) as DayRaw["ads"],
     videos: (videos.data ?? []) as DayRaw["videos"],
     bitly: (bitly.data ?? []) as DayRaw["bitly"],
@@ -59,5 +66,5 @@ export async function getDayTable(
     ig: (ig.data ?? []) as NonNullable<DayRaw["ig"]>,
   };
   const data = buildDayTable(raw, ids, today);
-  return { data, all, chosen, ranks: rankVideos(raw, data) };
+  return { data, all, chosen, ranks: rankVideos(raw, data), raw };
 }

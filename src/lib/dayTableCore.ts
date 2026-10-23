@@ -28,6 +28,7 @@ export type DayCell = {
   phase: string; // 결제일 구간 (사전등록/1차EB/대기1/2차EB/대기2/정규/추가)
   phaseStart: string | null; // 이 날 시작한 구간 이름
   clicks: number | null; // 링크 클릭 (Bitly 일별)
+  dn: number | null; // 클래스 시작까지 남은 일수 (class_start 없으면 null)
   actions: DayAction[];
   isToday: boolean;
 };
@@ -36,8 +37,9 @@ export type DayColumn = {
   cohortId: number;
   name: string;
   day1: string;
+  classStart: string | null;
   lastDay: number;
-  pre: number; // Day 1 이전 결제
+  pre: number; // Day 1 이전 결제 + 다른 기수에서 이전해 온 인원 (누적이 대시보드 실등록과 같아지도록)
   maxNet: number;
   ongoing: boolean;
   cells: DayCell[]; // index 0 = Day 1
@@ -48,6 +50,7 @@ export type DayTableData = { columns: DayColumn[]; maxDay: number; today: string
 export type DayRaw = {
   cohorts: CohortFull[];
   daily: Record<number, { date: string; new_count: number; refund_count: number }[]>;
+  arrivals?: Record<number, number>; // 기수별 '도착' 기수이전 인원 (입금완료·미환불) — Day 1 이전에 합산
   ads: { day: string; views: number | null }[]; // 유튜브 트래픽 ADVERTISING 일별 조회
   videos: { video_id: string; pub_date: string; kind: string | null; title: string | null; views: number | null }[];
   videoDaily?: { video_id: string; day: string; views: number | null }[]; // 영상별 일별 조회 (발행 후 14일)
@@ -114,7 +117,7 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
     // 날짜별 순등록
     const netByDate = new Map<string, number>();
     for (const r of raw.daily[id] ?? []) netByDate.set(r.date, (netByDate.get(r.date) ?? 0) + (r.new_count ?? 0) - (r.refund_count ?? 0));
-    let pre = 0;
+    let pre = raw.arrivals?.[id] ?? 0;
     for (const [d, n] of netByDate) if (d < day1) pre += n;
 
     // 구간 시작일 → 라벨
@@ -184,6 +187,7 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
         phase: bandOf(c, date),
         phaseStart: starts.get(date) ?? null,
         clicks: future ? null : clicksByDay.get(date) ?? null,
+        dn: c.class_start ? diffDays(date, c.class_start) : null,
         actions,
         isToday: date === today,
       });
@@ -193,6 +197,7 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
       cohortId: id,
       name: c.name,
       day1,
+      classStart: c.class_start,
       lastDay,
       pre,
       maxNet,

@@ -6,19 +6,36 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CohortSelector from "./CohortSelector";
 
-const NAV = [
-  { href: "/", label: "대시보드", icon: "📊" },
-  { href: "/daily", label: "Day별 비교", icon: "🧮" },
-  { href: "/registrations", label: "등록 관리", icon: "📝" },
-  { href: "/ad-spend", label: "광고비", icon: "💸" },
-  { href: "/kakao-message", label: "카카오 메시지", icon: "💬" },
-  { href: "/sns", label: "SNS·채널", icon: "📡" },
-  { href: "/calendar", label: "캘린더", icon: "📅" },
-  { href: "/content", label: "콘텐츠 기록", icon: "🎬" },
-  { href: "/compare", label: "기수별 비교", icon: "⚖️" },
-  { href: "/insights", label: "유입·전환 분석", icon: "🔬" },
-  { href: "/brief-history", label: "브리핑 추세", icon: "📈" },
-  { href: "/cohorts", label: "기수 관리", icon: "⚙️" },
+// 메뉴 3묶음: 보기(매일 판단) / 분석(원인 찾기) / 입력·관리(기록)
+const NAV_GROUPS: { title: string; items: { href: string; label: string }[] }[] = [
+  {
+    title: "보기",
+    items: [
+      { href: "/", label: "오늘 판단판" },
+      { href: "/daily", label: "Day 비교" },
+      { href: "/phases", label: "구간 요약" },
+    ],
+  },
+  {
+    title: "분석",
+    items: [
+      { href: "/compare", label: "기수별 비교" },
+      { href: "/insights", label: "유입·전환 분석" },
+      { href: "/brief-history", label: "브리핑 추세" },
+      { href: "/sns", label: "SNS·채널" },
+    ],
+  },
+  {
+    title: "입력·관리",
+    items: [
+      { href: "/registrations", label: "등록 관리" },
+      { href: "/ad-spend", label: "광고비" },
+      { href: "/kakao-message", label: "카카오 메시지" },
+      { href: "/content", label: "콘텐츠 기록" },
+      { href: "/calendar", label: "캘린더" },
+      { href: "/cohorts", label: "기수 관리" },
+    ],
+  },
 ];
 
 export default function Sidebar({ cohorts = [], defaultCohort }: { cohorts?: { id: number; name: string }[]; defaultCohort?: string }) {
@@ -50,39 +67,45 @@ export default function Sidebar({ cohorts = [], defaultCohort }: { cohorts?: { i
     {open && <div onClick={() => setOpen(false)} className="md:hidden fixed inset-0 bg-black/50 z-40" />}
 
     <aside
-      className={`w-56 shrink-0 bg-slate-900 text-slate-100 min-h-screen flex flex-col
+      className={`w-56 shrink-0 bg-white text-gray-800 border-r border-gray-200 min-h-screen flex flex-col
         fixed md:static inset-y-0 left-0 z-50 transform transition-transform duration-200
         ${open ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
     >
-      <div className="p-5 border-b border-slate-700">
-        <div className="font-extrabold text-lg">310 워크스페이스</div>
-        <div className="text-xs text-slate-400 mt-0.5">모멘트핏 운영</div>
+      <div className="p-5 border-b border-gray-200">
+        <div className="font-black text-lg tracking-tight">310 마케팅</div>
+        <div className="text-xs text-gray-600 mt-0.5">모멘트핏 운영</div>
       </div>
       <div className="pt-3">
         <CohortSelector cohorts={cohorts} defaultCohort={defaultCohort} />
       </div>
-      <nav className="flex-1 p-3 space-y-1">
-        {NAV.map((n) => {
-          const active = path === n.href;
-          return (
-            <Link
-              key={n.href}
-              href={`${n.href}${q}`}
-              onClick={() => setOpen(false)}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                active ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800"
-              }`}
-            >
-              <span>{n.icon}</span> {n.label}
-            </Link>
-          );
-        })}
+      <nav aria-label="메뉴" className="flex-1 p-3 flex flex-col gap-4">
+        {NAV_GROUPS.map((g) => (
+          <div key={g.title} className="flex flex-col gap-0.5">
+            <span className="px-3 pb-1 text-[11px] font-bold tracking-wider text-gray-500">{g.title}</span>
+            {g.items.map((n) => {
+              const active = path === n.href;
+              return (
+                <Link
+                  key={n.href}
+                  href={`${n.href}${q}`}
+                  onClick={() => setOpen(false)}
+                  aria-current={active ? "page" : undefined}
+                  className={`px-3 py-2 rounded-lg text-sm transition ${
+                    active ? "bg-indigo-50 text-indigo-900 font-bold" : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {n.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
       <button
         onClick={logout}
-        className="m-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 text-left"
+        className="m-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 text-left"
       >
-        🚪 로그아웃
+        로그아웃
       </button>
     </aside>
     </>
