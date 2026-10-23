@@ -1,6 +1,6 @@
 // 판단판(첫 화면) 데이터 로더 — 계산은 dashboardCore(순수 함수)에 위임
 import { createClient } from "@/lib/supabase/server";
-import { getCohortsChrono, kstToday, pickCurrentCohort } from "@/lib/cohorts";
+import { getCohortsChrono, kstToday, pickCurrentCohort, type CohortRow } from "@/lib/cohorts";
 import { getDayTable } from "@/lib/dayTable";
 import { buildAlerts, compareRows, conclusion, type Alert, type CompareRow, type Conclusion } from "@/lib/dashboardCore";
 import type { CohortFull, DayTableData } from "@/lib/dayTableCore";
@@ -11,8 +11,20 @@ export async function boardCohorts(selected?: string, today = kstToday()) {
   const focus = selected && chrono.some((c) => c.name === selected) ? selected : pickCurrentCohort(chrono, today)?.name;
   const idx = chrono.findIndex((c) => c.name === focus);
   const compare = idx >= 0 ? chrono.slice(idx + 1).filter((c) => (c.pre_open ?? c.class_start ?? "") !== "").slice(0, 3).map((c) => c.name) : [];
-  return { focus: focus ?? null, compare, all: chrono.map((c) => c.name) };
+  return { focus: focus ?? null, focusId: idx >= 0 ? chrono[idx].id : null, compare, all: chrono.map((c) => c.name), chrono };
 }
+
+const unpaidCount = async (cohortId: number) => {
+  const sb = await createClient();
+  const { count } = await sb
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("cohort_id", cohortId)
+    .neq("payment", "입금완료")
+    .eq("is_refund", false)
+    .eq("is_transfer", false);
+  return count ?? 0;
+};
 
 export type BoardStatus = {
   lastKakao: string | null;
@@ -39,21 +51,13 @@ export type BoardData = {
 
 export async function getBoard(selected?: string): Promise<BoardData | null> {
   const today = kstToday();
-  const { focus, compare } = await boardCohorts(selected, today);
-  if (!focus) return null;
-  const { data: table, raw } = await getDayTable([focus, ...compare]);
+  const { focus, focusId, compare, chrono } = await boardCohorts(selected, today);
+  if (!focus || focusId === null) return null;
+  // 표와 미입금 수는 서로 기다릴 필요가 없어 동시에
+  const [{ data: table, raw }, unpaid] = await Promise.all([getDayTable([focus, ...compare], chrono as CohortRow[]), unpaidCount(focusId)]);
   const col = table.columns[0];
   if (!col || !raw || col.name !== focus) return null;
   const cohort = raw.cohorts.find((c) => c.id === col.cohortId)!;
-
-  const sb = await createClient();
-  const { count: unpaid } = await sb
-    .from("registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("cohort_id", cohort.id)
-    .neq("payment", "입금완료")
-    .eq("is_refund", false)
-    .eq("is_transfer", false);
 
   const rows = compareRows(table);
   const con = conclusion(table, today);

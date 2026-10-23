@@ -18,14 +18,7 @@ export default async function PhasesPage({ searchParams }: { searchParams: Promi
           </span>
         </header>
         {d ? (
-          <PhaseTable
-            cohortId={d.cohort.id}
-            rows={d.rows}
-            compareNames={d.compareNames}
-            arrivals={d.arrivals}
-            hasRoster={d.hasRoster}
-            memos={d.memos}
-          />
+          <PhaseTable rows={d.rows} compareNames={d.compareNames} arrivals={d.arrivals} hasRoster={d.hasRoster} />
         ) : (
           <div className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-600">{cohort ?? "현재 기수"} 데이터를 찾을 수 없습니다.</div>
         )}

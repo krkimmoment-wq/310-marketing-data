@@ -1,18 +1,20 @@
 // 기수 × Day 비교표 데이터 로더 — 계산은 dayTableCore(순수 함수)에 위임
 import { createClient } from "@/lib/supabase/server";
-import { getCohortsChrono, kstToday } from "@/lib/cohorts";
+import { getCohortsChrono, kstToday, type CohortRow } from "@/lib/cohorts";
 import { cohortDailyRows } from "@/lib/daily";
 import { buildDayTable, rankVideos, type CohortFull, type DayRaw, type DayTableData, type VideoRank } from "@/lib/dayTableCore";
 
 const COHORT_COLS = "id,name,pre_open,eb1_open,eb1_close,eb2_open,eb2_close,reg_open,reg_close,extra_close,ended_at,class_start";
 
 // names 미지정 시 기본 = 모집을 이미 시작한 기수 중 최근 4개. 열 순서는 최신 → 과거.
+// chronoIn: 호출하는 쪽이 이미 읽은 기수 목록이 있으면 넘겨서 같은 조회를 반복하지 않는다
 export async function getDayTable(
-  names?: string[]
+  names?: string[],
+  chronoIn?: CohortRow[]
 ): Promise<{ data: DayTableData; all: string[]; chosen: string[]; ranks: VideoRank[]; raw: DayRaw | null }> {
   const sb = await createClient();
   const today = kstToday();
-  const chrono = await getCohortsChrono();
+  const chrono = chronoIn ?? (await getCohortsChrono());
   const all = chrono.map((c) => c.name);
   const key = (c: { pre_open: string | null; class_start: string | null }) => c.pre_open ?? c.class_start ?? "";
   const started = chrono.filter((c) => key(c) !== "" && key(c) <= today);

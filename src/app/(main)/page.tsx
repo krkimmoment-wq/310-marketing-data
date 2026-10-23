@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { getKpi, type Kpi } from "@/lib/kpi";
 import { getDayComparison } from "@/lib/comparison";
-import { resolveCohortPair } from "@/lib/cohorts";
+import { getLatestCohortName, resolveCohortPair } from "@/lib/cohorts";
 import { getDataHealth } from "@/lib/dataHealth";
 import { getBoard } from "@/lib/board";
 import { bandOf } from "@/lib/dayTableCore";
@@ -42,14 +43,15 @@ function nextMilestone(c: { [k: string]: string | null }, today: string) {
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ cohort?: string }> }) {
   const { cohort } = await searchParams;
-  const board = await getBoard(cohort);
+  // 판단판 데이터와 KPI(공식 인원·목표)는 서로 기다릴 필요가 없어 동시에 조회
+  const [board, kpi] = await Promise.all([getBoard(cohort), (cohort ? Promise.resolve(cohort) : getLatestCohortName()).then((n) => getKpi(n))]);
   if (!board)
     return <div className="min-h-screen bg-[#F6F6F3] p-8 text-gray-700">{cohort ?? "현재 기수"} 데이터를 찾을 수 없습니다.</div>;
 
   const { cohort: c, today, conclusion: con, status } = board;
-  const kpi = await getKpi(c.name);
-  const goal = kpi?.goal ?? 0;
-  const official = kpi?.realRegs ?? con?.current ?? 0;
+  const sameCohort = kpi?.cohortName === c.name;
+  const goal = sameCohort ? kpi!.goal : 0;
+  const official = sameCohort ? kpi!.realRegs : con?.current ?? 0;
   const ms = nextMilestone(c as unknown as Record<string, string | null>, today);
   const todayDate = new Date(today + "T00:00:00Z");
   const dn = c.class_start ? daysAgo(today, c.class_start) : null;
@@ -188,7 +190,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         {/* 5. 더 보기 — 예전 첫 화면 카드들 (접힘) */}
         <details className="rounded-xl border border-gray-200 bg-white px-5 py-3.5">
           <summary className="cursor-pointer text-[14px] font-bold">더 보기: AI 브리핑 · 데이터 점검 · 일정 · 매출·ROAS · 페이스 · 차트</summary>
-          {kpi && <Legacy kpi={kpi} cohortName={c.name} />}
+          {/* 본문을 먼저 보여주고, 무거운 예전 카드들은 뒤이어 불러온다 */}
+          {kpi && kpi.cohortName === c.name && (
+            <Suspense fallback={<div className="mt-3 h-40 animate-pulse rounded-xl bg-gray-100" />}>
+              <Legacy kpi={kpi} cohortName={c.name} />
+            </Suspense>
+          )}
         </details>
       </div>
     </div>
@@ -197,8 +204,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
 // 예전 첫 화면 카드들 — 지우지 않고 "더 보기" 안에서 그대로 보여줌(어두운 테마 유지)
 async function Legacy({ kpi, cohortName }: { kpi: Kpi; cohortName: string }) {
-  const { previousName } = await resolveCohortPair(cohortName);
-  const health = await getDataHealth();
+  const [{ previousName }, health] = await Promise.all([resolveCohortPair(cohortName), getDataHealth()]);
   const dayCmp = await getDayComparison(previousName ? [cohortName, previousName] : [cohortName]);
   const maxSection = Math.max(1, ...SECTIONS.map((s) => kpi.bySection[s] ?? 0));
   const paceRatio = kpi.requiredPace > 0 ? kpi.currentPace / kpi.requiredPace : 1;

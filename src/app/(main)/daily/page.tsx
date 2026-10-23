@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 export default async function DailyPage({ searchParams }: { searchParams: Promise<{ cohorts?: string }> }) {
   const { cohorts } = await searchParams;
   const picked = cohorts?.split(",").map((s) => s.trim()).filter(Boolean);
-  const { focus, compare } = await boardCohorts();
-  const { data, all, chosen } = await getDayTable(picked?.length ? picked : focus ? [focus, ...compare] : undefined);
+  const { focus, compare, chrono } = await boardCohorts();
+  const { data, all, chosen } = await getDayTable(picked?.length ? picked : focus ? [focus, ...compare] : undefined, chrono);
 
   return (
     <div className="min-h-screen bg-[#F6F6F3] text-gray-800">
