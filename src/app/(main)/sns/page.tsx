@@ -14,10 +14,6 @@ const SNAPSHOT_CHANNELS = [
 
 export const dynamic = "force-dynamic";
 
-const DARK_BG: React.CSSProperties = {
-  background:
-    "radial-gradient(1200px 600px at 80% -10%, rgba(0,229,255,0.10), transparent), radial-gradient(900px 500px at 0% 110%, rgba(59,130,246,0.10), transparent), #070b16",
-};
 
 export default async function SnsPage({
   searchParams,
@@ -29,7 +25,7 @@ export default async function SnsPage({
 
   if (!data) {
     return (
-      <div style={DARK_BG} className="min-h-screen p-8 text-slate-300">
+      <div className="theme-light min-h-screen p-8 text-slate-300">
         <h1 className="font-hud text-2xl font-black jarvis-neon jarvis-glow mb-3">SNS · 채널 추이</h1>
         <div className="jarvis-card p-6 text-sm leading-relaxed">
           아직 SNS 데이터가 없습니다. <br />
@@ -52,7 +48,7 @@ export default async function SnsPage({
   };
 
   return (
-    <div style={DARK_BG} className="scanlines min-h-screen p-6 md:p-8 text-slate-100">
+    <div className="theme-light min-h-screen p-6 md:p-8 text-slate-100">
       <div className="mb-6">
         <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">
           SNS · 채널 추이

@@ -4,10 +4,6 @@ import CohortRow from "./CohortRow";
 
 export const dynamic = "force-dynamic";
 
-const DARK_BG: React.CSSProperties = {
-  background:
-    "radial-gradient(1200px 600px at 80% -10%, rgba(0,229,255,0.10), transparent), radial-gradient(900px 500px at 0% 110%, rgba(59,130,246,0.10), transparent), #070b16",
-};
 
 export default async function CohortsPage() {
   const sb = await createClient();
@@ -15,7 +11,7 @@ export default async function CohortsPage() {
   const list = cohorts ?? [];
 
   return (
-    <div style={DARK_BG} className="scanlines min-h-screen p-6 md:p-8 space-y-6 text-slate-100">
+    <div className="theme-light min-h-screen p-6 md:p-8 space-y-6 text-slate-100">
       <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">⚙️ 기수 관리</h1>
       <p className="text-sm text-slate-400 -mt-3">
         새 기수를 추가하면 사이드바 기수 선택기·비교·모든 화면에 자동으로 나타납니다.

@@ -22,10 +22,6 @@ const LEVEL = {
   good: { label: "좋음", chip: "bg-green-700", row: "bg-green-50" },
 } as const;
 
-const DARK_BG: React.CSSProperties = {
-  background:
-    "radial-gradient(1200px 600px at 80% -10%, rgba(0,229,255,0.10), transparent), radial-gradient(900px 500px at 0% 110%, rgba(59,130,246,0.10), transparent), #070b16",
-};
 
 // 다음 일정 (마감·오픈 중 오늘 이후 가장 가까운 것)
 function nextMilestone(c: { [k: string]: string | null }, today: string) {
@@ -218,7 +214,7 @@ async function Legacy({ kpi, cohortName }: { kpi: Kpi; cohortName: string }) {
   const needMore = Math.max(0, Math.round((kpi.requiredPace - kpi.currentPace) * 100) / 100);
 
   return (
-    <div style={DARK_BG} className="mt-3 rounded-xl p-4 md:p-6 text-slate-100">
+    <div className="theme-light mt-3 rounded-xl p-4 md:p-6 text-slate-100">
       <AiBriefing fallback={kpi.insights} cohort={cohortName} />
       <DataHealthCard items={health.items} />
 

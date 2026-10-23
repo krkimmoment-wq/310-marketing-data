@@ -63,12 +63,8 @@ export default function FloatingChat() {
       {/* 채팅 패널 */}
       {open && (
         <div
-          className="fixed bottom-24 right-6 z-50 w-[min(92vw,400px)] h-[min(70vh,560px)] rounded-2xl flex flex-col overflow-hidden shadow-2xl"
-          style={{
-            background:
-              "radial-gradient(600px 300px at 80% -10%, rgba(0,229,255,0.12), transparent), #0a1020",
-            border: "1px solid rgba(0,229,255,0.25)",
-          }}
+          className="theme-light fixed bottom-24 right-6 z-50 w-[min(92vw,400px)] h-[min(70vh,560px)] rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+          style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
         >
           {/* 헤더 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-cyan-400/15">

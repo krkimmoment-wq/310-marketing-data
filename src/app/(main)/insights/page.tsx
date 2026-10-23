@@ -19,10 +19,6 @@ import { kstTodayStr } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
-const DARK_BG: React.CSSProperties = {
-  background:
-    "radial-gradient(1200px 600px at 80% -10%, rgba(0,229,255,0.10), transparent), radial-gradient(900px 500px at 0% 110%, rgba(59,130,246,0.10), transparent), #070b16",
-};
 
 // STEP 헤더 (텍스트 최소 — 질문 한 줄만). 모듈 레벨로 둬서 render 중 컴포넌트 정의 회피
 function StepHead({ n, q }: { n: string; q: string }) {
@@ -89,7 +85,7 @@ export default async function InsightsPage({
   ];
 
   return (
-    <div style={DARK_BG} className="scanlines min-h-screen p-6 md:p-8 text-slate-100">
+    <div className="theme-light min-h-screen p-6 md:p-8 text-slate-100">
       <div className="mb-4 pt-10 md:pt-0">
         <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">유입·전환 분석</h1>
       </div>

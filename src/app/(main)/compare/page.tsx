@@ -8,10 +8,6 @@ import CompareSelector from "./CompareSelector";
 
 export const dynamic = "force-dynamic";
 
-const DARK_BG: React.CSSProperties = {
-  background:
-    "radial-gradient(1200px 600px at 80% -10%, rgba(0,229,255,0.10), transparent), radial-gradient(900px 500px at 0% 110%, rgba(59,130,246,0.10), transparent), #070b16",
-};
 
 const CH = [
   { key: "ig", label: "인스타", color: "#e1306c" },
@@ -104,7 +100,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   const sameSel = aName === bName;
 
   return (
-    <div style={DARK_BG} className="scanlines min-h-screen p-6 md:p-8 text-slate-100">
+    <div className="theme-light min-h-screen p-6 md:p-8 text-slate-100">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="font-hud text-2xl md:text-3xl font-black tracking-widest jarvis-glow jarvis-neon">기수별 비교</h1>
         <CompareSelector cohorts={list} a={aName} b={bName} />

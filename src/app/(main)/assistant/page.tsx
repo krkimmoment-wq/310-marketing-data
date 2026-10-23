@@ -5,10 +5,6 @@ import { useSearchParams } from "next/navigation";
 
 type Msg = { role: "user" | "ai"; text: string };
 
-const DARK_BG: React.CSSProperties = {
-  background:
-    "radial-gradient(1200px 600px at 80% -10%, rgba(0,229,255,0.10), transparent), radial-gradient(900px 500px at 0% 110%, rgba(59,130,246,0.10), transparent), #070b16",
-};
 
 const SUGGESTIONS = [
   "지금 상황 한 줄로 요약해줘",
@@ -50,7 +46,7 @@ export default function AssistantPage() {
   }
 
   return (
-    <div style={DARK_BG} className="scanlines jarvis-grid-line min-h-screen flex flex-col p-6 md:p-8 text-slate-100">
+    <div className="theme-light min-h-screen flex flex-col p-6 md:p-8 text-slate-100">
       <div className="mb-4">
         <h1 className="font-hud text-2xl font-black tracking-widest jarvis-glow jarvis-neon">
           AI 어시스턴트
