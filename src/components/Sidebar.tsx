@@ -5,40 +5,18 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CohortSelector from "./CohortSelector";
+import { MENUS, menuLabel, sidebarTabs } from "@/lib/nav";
 
-// 메뉴 3묶음: 보기(매일 판단) / 분석(원인 찾기) / 입력·관리(기록)
-const NAV_GROUPS: { title: string; items: { href: string; label: string }[] }[] = [
-  {
-    title: "보기",
-    items: [
-      { href: "/", label: "오늘 판단판" },
-      { href: "/daily", label: "Day 비교" },
-      { href: "/phases", label: "구간 요약" },
-    ],
-  },
-  {
-    title: "분석",
-    items: [
-      { href: "/compare", label: "기수별 비교" },
-      { href: "/insights", label: "유입·전환 분석" },
-      { href: "/brief-history", label: "브리핑 추세" },
-      { href: "/sns", label: "SNS·채널" },
-    ],
-  },
-  {
-    title: "입력·관리",
-    items: [
-      { href: "/registrations", label: "등록 관리" },
-      { href: "/ad-spend", label: "광고비" },
-      { href: "/kakao-message", label: "카카오 메시지" },
-      { href: "/content", label: "콘텐츠 기록" },
-      { href: "/calendar", label: "캘린더" },
-      { href: "/cohorts", label: "기수 관리" },
-    ],
-  },
-];
-
-export default function Sidebar({ cohorts = [], defaultCohort }: { cohorts?: { id: number; name: string }[]; defaultCohort?: string }) {
+// 메뉴 5개 (각 메뉴 안의 화면은 탭) — 정의는 src/lib/nav.ts
+export default function Sidebar({
+  cohorts = [],
+  defaultCohort,
+  latestName,
+}: {
+  cohorts?: { id: number; name: string }[];
+  defaultCohort?: string;
+  latestName?: string;
+}) {
   const path = usePathname();
   const router = useRouter();
   const sp = useSearchParams();
@@ -78,28 +56,26 @@ export default function Sidebar({ cohorts = [], defaultCohort }: { cohorts?: { i
       <div className="pt-3">
         <CohortSelector cohorts={cohorts} defaultCohort={defaultCohort} />
       </div>
-      <nav aria-label="메뉴" className="flex-1 p-3 flex flex-col gap-4">
-        {NAV_GROUPS.map((g) => (
-          <div key={g.title} className="flex flex-col gap-0.5">
-            <span className="px-3 pb-1 text-[11px] font-bold tracking-wider text-gray-500">{g.title}</span>
-            {g.items.map((n) => {
-              const active = path === n.href;
-              return (
-                <Link
-                  key={n.href}
-                  href={`${n.href}${q}`}
-                  onClick={() => setOpen(false)}
-                  aria-current={active ? "page" : undefined}
-                  className={`px-3 py-2 rounded-lg text-sm transition ${
-                    active ? "bg-indigo-50 text-indigo-900 font-bold" : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  {n.label}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+      <nav aria-label="메뉴" className="flex-1 p-3 flex flex-col gap-1">
+        {MENUS.map((m) => {
+          const active = path === m.href;
+          return (
+            <Link
+              key={m.href}
+              href={`${m.href}${q}`}
+              onClick={() => setOpen(false)}
+              aria-current={active ? "page" : undefined}
+              className={`flex flex-col gap-0.5 px-3 py-2.5 rounded-lg transition ${
+                active ? "bg-indigo-50 text-indigo-900" : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <span className={`text-sm ${active ? "font-black" : "font-bold"}`}>
+                {m.num} {menuLabel(m, latestName)}
+              </span>
+              <span className={`text-[11px] leading-snug ${active ? "text-indigo-800" : "text-gray-600"}`}>{sidebarTabs(m)}</span>
+            </Link>
+          );
+        })}
       </nav>
       <button
         onClick={logout}

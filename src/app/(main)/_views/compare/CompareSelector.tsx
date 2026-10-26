@@ -17,6 +17,7 @@ export default function CompareSelector({
   function set(key: "a" | "b", name: string) {
     const params = new URLSearchParams(sp.toString());
     params.set(key, name);
+    params.set("tab", "cohort"); // ② 기수 비교 › 기수별 비교 탭 유지
     router.push(`/compare?${params.toString()}`);
     router.refresh();
   }

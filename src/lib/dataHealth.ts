@@ -74,11 +74,11 @@ export async function getDataHealth(): Promise<{ items: HealthItem[]; cohortName
     latest("sns_followers", "snapshot_date"),
   ]);
   if (!bitly || days(bitly, today) > 2)
-    add("red", `링크 클릭 수집 ${bitly ? days(bitly, today) : "?"}일째 멈춤`, `마지막 수집 ${bitly ?? "없음"} · 자동 동기화 확인 필요`, "/sns");
+    add("red", `링크 클릭 수집 ${bitly ? days(bitly, today) : "?"}일째 멈춤`, `마지막 수집 ${bitly ?? "없음"} · 자동 동기화 확인 필요`, "/manage?tab=sns");
   if (!yt || days(yt, today) > 5)
-    add("red", `유튜브 지표 수집 ${yt ? days(yt, today) : "?"}일째 멈춤`, `마지막 수집 ${yt ?? "없음"} · 유튜브 토큰 만료 가능성`, "/insights");
+    add("red", `유튜브 지표 수집 ${yt ? days(yt, today) : "?"}일째 멈춤`, `마지막 수집 ${yt ?? "없음"} · 유튜브 토큰 만료 가능성`, "/compare?tab=funnel");
   if (!sns || days(sns, today) > 9)
-    add("yellow", `SNS 팔로워 주간 입력 ${sns ? days(sns, today) : "?"}일째 없음`, `마지막 입력 ${sns ?? "없음"}`, "/sns");
+    add("yellow", `SNS 팔로워 주간 입력 ${sns ? days(sns, today) : "?"}일째 없음`, `마지막 입력 ${sns ?? "없음"}`, "/manage?tab=sns");
 
   // ── 2) 현재 기수 입력 누락 (모집 중 ~ 클래스 시작 후 7일까지만)
   if (cur) {
@@ -86,15 +86,15 @@ export async function getDataHealth(): Promise<{ items: HealthItem[]; cohortName
     const active = key(cur) <= today && today <= addDays(end, 7);
     if (active) {
       const checks: { table: string; col: string; label: string; href: string; needEb: boolean; staleCheck: boolean }[] = [
-        { table: "content_log", col: "pub_date", label: "콘텐츠 기록", href: "/content", needEb: false, staleCheck: true },
-        { table: "kakao_message", col: "sent_date", label: "카톡 메시지 성과", href: "/kakao-message", needEb: true, staleCheck: true },
-        { table: "ad_spend", col: "period_start", label: "광고비", href: "/ad-spend", needEb: false, staleCheck: false },
+        { table: "content_log", col: "pub_date", label: "콘텐츠 기록", href: "/records?tab=content", needEb: false, staleCheck: true },
+        { table: "kakao_message", col: "sent_date", label: "카톡 메시지 성과", href: "/records?tab=kakao", needEb: true, staleCheck: true },
+        { table: "ad_spend", col: "period_start", label: "광고비", href: "/records?tab=ad", needEb: false, staleCheck: false },
       ];
       for (const ck of checks) {
         if (ck.needEb && (!cur.eb1_open || today < cur.eb1_open)) continue;
         const { data } = await sb.from(ck.table).select(ck.col).eq("cohort_id", cur.id).order(ck.col, { ascending: false }).limit(1);
         const row = (data?.[0] ?? null) as Record<string, unknown> | null;
-        const href = `${ck.href}?cohort=${encodeURIComponent(cur.name)}`;
+        const href = `${ck.href}&cohort=${encodeURIComponent(cur.name)}`;
         if (!row) add("yellow", `${cur.name} ${ck.label} 0건`, "모집 중인데 기록이 없습니다", href);
         else if (ck.staleCheck) {
           const last = String(row[ck.col]).slice(0, 10);
@@ -111,7 +111,7 @@ export async function getDataHealth(): Promise<{ items: HealthItem[]; cohortName
     const miss = dueKeys.filter((k) => !upcoming[k]);
     const dleft = days(today, upcoming.pre_open);
     if (miss.length && dleft <= 30)
-      add("yellow", `${upcoming.name} 일정 미입력 (사전등록 D-${dleft})`, `${miss.length}개 날짜가 비어 있습니다`, "/cohorts");
+      add("yellow", `${upcoming.name} 일정 미입력 (사전등록 D-${dleft})`, `${miss.length}개 날짜가 비어 있습니다`, "/manage?tab=cohorts");
   }
 
   // ── 4) 등록 데이터 품질
@@ -124,11 +124,11 @@ export async function getDataHealth(): Promise<{ items: HealthItem[]; cohortName
     rows.slice(0, 6).map((r) => `${nameOf.get(r.cohort_id) ?? "?"} ${r.name}`).join(", ") + (rows.length > 6 ? ` 외 ${rows.length - 6}명` : "");
 
   const noDest = regs.filter((r) => r.is_transfer && !r.transfer_to_cohort_id);
-  if (noDest.length) add("red", `도착 기수 없는 기수이전 ${noDest.length}건 (매출 누락)`, who(noDest), "/registrations");
+  if (noDest.length) add("red", `도착 기수 없는 기수이전 ${noDest.length}건 (매출 누락)`, who(noDest), "/manage?tab=registrations");
   const noRefundAmt = regs.filter((r) => r.is_refund && !r.refund_amount);
-  if (noRefundAmt.length) add("yellow", `환불액 미입력 ${noRefundAmt.length}건 (전액환불로 계산 중)`, who(noRefundAmt), "/registrations");
+  if (noRefundAmt.length) add("yellow", `환불액 미입력 ${noRefundAmt.length}건 (전액환불로 계산 중)`, who(noRefundAmt), "/manage?tab=registrations");
   const oldUnpaid = regs.filter((r) => r.payment !== "입금완료" && r.reg_date && days(r.reg_date, today) > 14);
-  if (oldUnpaid.length) add("yellow", `2주 넘은 미입금 ${oldUnpaid.length}건`, who(oldUnpaid), "/registrations");
+  if (oldUnpaid.length) add("yellow", `2주 넘은 미입금 ${oldUnpaid.length}건`, who(oldUnpaid), "/manage?tab=registrations");
   const cnt = new Map<string, number>();
   for (const r of regs) cnt.set(`${r.cohort_id}|${r.name}`, (cnt.get(`${r.cohort_id}|${r.name}`) ?? 0) + 1);
   const dups = [...cnt.entries()].filter(([, n]) => n > 1);
@@ -137,14 +137,14 @@ export async function getDataHealth(): Promise<{ items: HealthItem[]; cohortName
       "yellow",
       `같은 기수 중복 이름 ${dups.length}명`,
       dups.map(([k, n]) => `${nameOf.get(Number(k.split("|")[0])) ?? "?"} ${k.split("|")[1]}(${n}건)`).join(", ") + " · 동명이인이면 정상",
-      "/registrations"
+      "/manage?tab=registrations"
     );
 
   // ── 5) 구간 라벨 vs 결제일 구간 (현재 기수, 확인 권장)
   if (cur && cur.eb1_open && cur.eb1_close && cur.eb2_open && cur.eb2_close && cur.reg_open && cur.reg_close) {
     const mm = regs.filter((r) => r.cohort_id === cur.id && r.reg_date && r.section && bandOf(cur, r.reg_date) !== r.section);
     if (mm.length)
-      add("info", `${cur.name} 구간 라벨과 결제일 구간이 다른 등록 ${mm.length}건`, "할인가를 유지한 채 늦게 입금한 경우면 정상", `/registrations?cohort=${encodeURIComponent(cur.name)}`);
+      add("info", `${cur.name} 구간 라벨과 결제일 구간이 다른 등록 ${mm.length}건`, "할인가를 유지한 채 늦게 입금한 경우면 정상", `/manage?tab=registrations&cohort=${encodeURIComponent(cur.name)}`);
   }
 
   const order: Record<HealthLevel, number> = { red: 0, yellow: 1, info: 2 };
