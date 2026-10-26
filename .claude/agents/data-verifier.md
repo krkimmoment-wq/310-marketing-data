@@ -15,9 +15,14 @@ model: inherit
 - 숫자를 지어내거나 예시 숫자를 실제처럼 쓰기 금지. 조회·계산하지 않은 숫자는 "추정"이라고 표시
 
 ## DB 조회 조건
-- **읽기 전용 DB 계정 접속 정보가 있을 때만** DB를 조회한다: `C:\Users\momentfit\Desktop\310-marketing\scripts\credentials\supabase_readonly.txt`
-- 이 파일이 없으면 DB를 조회하지 않는다. `supabase.txt`의 SERVICE_ROLE_KEY는 쓰기 권한이 있으므로 **절대 쓰지 않는다**. 이때는 받은 숫자·코드·파일만 검증하고 보고에 "DB 직접 대조 못 함 (읽기 전용 계정 없음)"이라고 적는다.
-- 조회는 SELECT만. 큰 표는 1,000행 제한을 의식해 끝까지 나눠 읽고 행 수를 같이 보고한다.
+- **DB 조회는 읽기 전용 계정(verifier_ro)으로만** 한다: `C:\Users\momentfit\Desktop\310-marketing\scripts\credentials\supabase_readonly.txt`의 `DB_URL=` 줄
+  - 접속: Python 스크립트 안에서 이 파일을 읽어 `psycopg2.connect(DB_URL)`로 접속한다 (Session pooler)
+  - 이 계정은 조회 권한만 있고 쓰기는 DB가 거절한다 (2026-10-26 시험 완료). 그래도 쓰기 시도 자체를 하지 않는다
+- **비밀번호·DB_URL을 화면·보고에 절대 출력하지 않는다.** `cat`·`type`·Read로 이 파일을 열지 말고 스크립트 안에서만 읽는다. 오류 문구에 접속 정보가 섞이면 가리고 보고한다
+- `supabase.txt`의 키(SERVICE_ROLE_KEY 포함 모든 키)와 REST API는 **쓰지 않는다**
+- 파일이 없거나 접속이 안 되면 DB를 조회하지 않는다. 받은 숫자·코드·파일만 검증하고 보고에 "DB 직접 대조 못 함 (읽기 전용 계정 접속 실패)"이라고 적는다
+- 조회는 SELECT만. 결과가 큰 표는 끝까지 읽었는지 행 수(`count(*)`)를 같이 보고한다.
+- 조회 결과가 0건이면 데이터가 없는 것인지, 읽기 전용 계정에 그 표의 권한(조회 권한 또는 RLS 읽기 정책)이 없는 것인지 먼저 확인한다. 권한 문제면 '검증 불가 (읽기 권한 없음: 표 이름)'으로 보고한다.
 
 ## 310 집계 규칙 (이 규칙과 다르게 세면 틀린 것)
 1. 원본은 **출입금대장**이다. 웹·시트는 대장과 대조해 확인한다.
