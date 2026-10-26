@@ -214,8 +214,18 @@ export function generateDraft(c: CohortFull): { ok: true; items: DraftItem[] } |
     if (k === "eb1") add(`lecture:${k}`, eve, "lecture", `${label} 전날 특강`, { plan_time: "20:00" });
     else add(`live:${k}`, eve, "live", `${label} 전날 챌린지 라이브`, { plan_time: "20:00" });
     add(`promo_short:${k}`, eve, "promo_short", `${label} 홍보쇼츠`);
-    add(`ad:${k}`, eve, "ad", `${label} 광고`, { end_date: k === "reg" ? settle : close, memo: k === "reg" ? "정규 3일 집중, 이후 소액" : null });
-    add(`kakao:${k}:notice`, eve, "kakao", k === "eb1" ? "특강 안내" : "챌린지 라이브 안내");
+    add(`etc:approve:${k}`, addDays(open, -7), "etc", "광고 소재 승인 확인"); // 할인 오픈 7일 전
+    add(`ad:${k}`, eve, "ad", `${label} 광고`, { end_date: close, memo: k === "reg" ? "정규 3일 집중, 이후 소액" : null });
+    if (k === "reg") {
+      // 정규 광고 3칩: 정규(전날~마감) / 추가(마감 다음 날~클래스 전날) / 클래스 첫 주(클래스 시작~첫 일요일)
+      const extraFrom = addDays(close, 1), extraTo = addDays(C.class_start, -1);
+      if (extraFrom <= extraTo) {
+        add("ad:extra", extraFrom, "ad", "추가 모집 광고", { end_date: extraTo });
+        add("kakao:extra:notice", extraFrom, "kakao", "추가 모집 안내");
+      }
+      add("ad:class", C.class_start, "ad", "클래스 첫 주 광고", { end_date: settle, memo: "결제 되는지 확인 후 유지" });
+    }
+    add(`kakao:${k}:notice`, eve, "kakao", k === "eb1" ? "특강 안내" : "챌린지 라이브 안내", { memo: "친구 전체 발송" });
     add(`kakao:${k}:open`, open, "kakao", `${label} 오픈`);
     const mid = addDays(open, Math.floor(diffDays(open, close) / 2));
     if (open < mid && mid < close) add(`kakao:${k}:mid`, mid, "kakao", `${label} 중간`, { optional: true });
@@ -230,7 +240,8 @@ export function generateDraft(c: CohortFull): { ok: true; items: DraftItem[] } |
     add(`keycon:${w}`, kc < start ? start : kc, "keycon", `${label} 전 키콘`);
   }
   // 공백 채움 카톡: 사전등록(오픈일~첫 카톡)·대기 기간에 카톡 사이가 7일 넘게 비면 1통 (일요일 저녁)
-  const ks = items.filter((x) => x.kind === "kakao").map((x) => x.plan_date).sort();
+  // 공백 채움은 사전등록·대기 기간만 → 추가 모집 안내는 계산에서 뺌
+  const ks = items.filter((x) => x.kind === "kakao" && x.rule_key !== "kakao:extra:notice").map((x) => x.plan_date).sort();
   const gaps: [string, string, string][] = [
     ["pre", C.pre_open, "특강 공지"],
     ["wait1", addDays(C.eb1_close, 1), "대기 공지 (공백 채움)"],
