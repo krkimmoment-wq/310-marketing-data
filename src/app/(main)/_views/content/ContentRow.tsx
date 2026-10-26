@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// 기수×Day 표 뱃지와 연결: 특강🎤 · 커뮤니티📝 · 프로모션💰 · 숏폼⚡ · 롱폼📺 · 나머지📌
-export const CATEGORIES = ["특강", "커뮤니티", "프로모션", "숏폼", "롱폼", "후기", "공지", "이벤트", "기타"];
+// 기수×Day 표 뱃지와 연결: 특강🎤 · 라이브(챌린지 라이브) · 커뮤니티📝 · 프로모션💰 · 숏폼⚡ · 롱폼📺 · 나머지📌
+// 계획판 실행 확인: 특강 계획 = '특강' 기록, 챌린지 라이브 계획 = '라이브' 기록
+export const CATEGORIES = ["특강", "라이브", "커뮤니티", "프로모션", "숏폼", "롱폼", "후기", "공지", "이벤트", "기타"];
 export const PLATFORMS = ["유튜브", "인스타그램", "틱톡", "네이버TV", "카카오톡", "홈페이지"];
 export const STATUSES = ["✅ 완료", "📝 예정", "🏃 진행"];
 

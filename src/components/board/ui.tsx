@@ -1,5 +1,6 @@
 // 판단판·Day 비교·구간 요약 공통 부품 (밝은 테마) — 훅 없음, 서버·클라이언트 모두 사용 가능
 import type { DayCell } from "@/lib/dayTableCore";
+import { KIND_META, type PlanKind } from "@/lib/planCore";
 
 // 구간 색: 칸 왼쪽 띠(strip) + 배지(bg/fg)
 export const PHASE_STYLE: Record<string, { strip: string; bg: string; fg: string }> = {
@@ -28,6 +29,7 @@ export function PhaseBadge({ phase }: { phase: string }) {
 const CHIP_COLOR: Record<string, [string, string]> = {
   카톡: ["#FEF9C3", "#713F12"],
   특강: ["#EDE9FE", "#5B21B6"],
+  라이브: ["#FFEDD5", "#9A3412"],
   광고: ["#FFEDD5", "#9A3412"],
   커뮤: ["#FCE7F3", "#9D174D"],
   기록: ["#F3F4F6", "#374151"],
@@ -38,6 +40,7 @@ export function chipsOf(cell: DayCell | null): string[] {
   const out: string[] = [];
   if (n("kakao")) out.push("카톡");
   if (n("special")) out.push("특강");
+  if (n("live")) out.push("라이브");
   if (n("pool")) out.push("광고");
   if (n("short")) out.push(`숏${n("short")}`);
   if (n("long")) out.push(`롱${n("long")}`);
@@ -55,6 +58,24 @@ export function Chips({ cell, size = "sm" }: { cell: DayCell | null; size?: "sm"
         return (
           <span key={c} className={`rounded px-1 font-bold ${size === "xs" ? "text-[10px]" : "text-[11px]"}`} style={{ background: bg, color: fg }}>
             {c}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+// 계획판 계획 → 점선 칩 (실제 기록 칩과 구분). 계획이 없으면 아무것도 그리지 않음
+export function PlanChips({ cell, size = "sm" }: { cell: DayCell | null; size?: "sm" | "xs" }) {
+  if (!cell?.plans?.length) return null;
+  const kinds = [...new Set(cell.plans.map((p) => p.kind))] as PlanKind[];
+  return (
+    <span className="flex flex-wrap gap-[3px]">
+      {kinds.map((k) => {
+        const m = KIND_META[k] ?? KIND_META.etc;
+        return (
+          <span key={k} className={`rounded px-1 font-bold ${size === "xs" ? "text-[10px]" : "text-[11px]"}`} style={{ color: m.fg, border: `1px dashed ${m.border}`, background: "#FFFFFF" }}>
+            {m.label}
           </span>
         );
       })}

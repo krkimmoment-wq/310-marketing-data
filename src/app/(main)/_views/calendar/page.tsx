@@ -30,7 +30,7 @@ export default async function CalendarPage({
           {data.cohortName} 모집 캘린더
         </h1>
         <p className="text-sm text-slate-400 mt-1">
-          일별 등록 · 누적 · 분기점 · 누적 등록 {data.total}명 (등록관리 실시간 연동)
+          일별 등록 · 누적 · 분기점 · 공식 인원 {data.total}명 (판단판과 같은 기준: 결제일 기준 실등록 + 다른 기수에서 옮겨온 인원)
         </p>
       </div>
 

@@ -6,6 +6,7 @@ import type { ActionKind, DayCell, DayTableData } from "@/lib/dayTableCore";
 
 const BADGE: Record<ActionKind, { icon: string; label: string }> = {
   special: { icon: "🎤", label: "특강" },
+  live: { icon: "🔴", label: "챌린지 라이브" },
   pool: { icon: "💰", label: "유튜브 유료 노출" },
   short: { icon: "⚡", label: "숏폼" },
   long: { icon: "📺", label: "롱폼" },
@@ -13,7 +14,7 @@ const BADGE: Record<ActionKind, { icon: string; label: string }> = {
   kakao: { icon: "💬", label: "카톡 발송" },
   memo: { icon: "📌", label: "기타 기록" },
 };
-const ORDER: ActionKind[] = ["special", "pool", "long", "short", "community", "kakao", "memo"];
+const ORDER: ActionKind[] = ["special", "live", "pool", "long", "short", "community", "kakao", "memo"];
 const PHASE_COLOR: Record<string, string> = {
   사전등록: "#64748b",
   "1차EB": "#22d3ee",

@@ -39,11 +39,13 @@ export async function getCalendar(cohortName = "14기"): Promise<CalendarData | 
   const { data: cohort } = await sb.from("cohorts").select("*").eq("name", cohortName).single();
   if (!cohort) return null;
 
-  const [daily, { data: notes }, { data: content }, { data: ads }] = await Promise.all([
+  const [daily, { data: notes }, { data: content }, { data: ads }, { data: arrivalsRaw }] = await Promise.all([
     cohortDailyRows(sb, cohort.id),
     sb.from("calendar_note").select("note_date, note").eq("cohort_id", cohort.id),
     sb.from("content_log").select("pub_date, category, title").eq("cohort_id", cohort.id),
     sb.from("ad_spend").select("period_start, platform").eq("cohort_id", cohort.id), // cohort_id=14기만 → 13기 제외
+    // 다른 기수에서 이 기수로 옮겨온 인원(입금완료·미환불) — 판단판 공식 인원과 같은 기준으로 누적에 포함
+    sb.from("registrations").select("id").eq("transfer_to_cohort_id", cohort.id).eq("payment", "입금완료").eq("is_refund", false),
   ]);
   const rows = daily;
   const noteMap = new Map<string, string>();
@@ -55,9 +57,9 @@ export async function getCalendar(cohortName = "14기"): Promise<CalendarData | 
   for (const c of content ?? []) if (c.pub_date) evGet(c.pub_date).content.push(c.category || "콘텐츠");
   for (const a of ads ?? []) if (a.period_start) { const lbl = (PF[a.platform] || a.platform) + " 광고"; const e = evGet(a.period_start); if (!e.ad.includes(lbl)) e.ad.push(lbl); } // 같은날 같은채널 1회·금액제외
 
-  // 날짜별 집계 + 누적
+  // 날짜별 집계 + 누적 (시작값 = 옮겨온 인원 → 마지막 누적 = 판단판 공식 인원)
   const dayMap = new Map<string, { newCount: number; refund: number; cumulative: number; section: string | null }>();
-  let cum = 0;
+  let cum = (arrivalsRaw ?? []).length;
   for (const r of rows) {
     cum += (r.new_count ?? 0) - (r.refund_count ?? 0);
     dayMap.set(r.date, {

@@ -31,7 +31,7 @@ export async function getDayTable(
   const minDate = startDates[0] ?? today;
   const maxDate = endDates[endDates.length - 1] ?? today;
 
-  const [dailyEntries, arrivalsRaw, ads, videos, bitly, kakao, content] = await Promise.all([
+  const [dailyEntries, arrivalsRaw, ads, videos, bitly, kakao, content, plans] = await Promise.all([
     Promise.all(ids.map(async (id) => [id, await cohortDailyRows(sb, id)] as const)),
     // 다른 기수에서 이 기수로 옮겨온 인원(입금완료·미환불) — 대시보드 실등록과 같은 기준으로 누적에 포함
     sb.from("registrations").select("transfer_to_cohort_id").in("transfer_to_cohort_id", ids).eq("payment", "입금완료").eq("is_refund", false),
@@ -40,6 +40,8 @@ export async function getDayTable(
     sb.from("bitly_daily").select("click_date,clicks").gte("click_date", minDate).lte("click_date", maxDate).range(0, 9999),
     sb.from("kakao_message").select("cohort_id,sent_date,title,sent_count,click_count").in("cohort_id", ids),
     sb.from("content_log").select("cohort_id,pub_date,category,title").in("cohort_id", ids),
+    // 계획판 계획 → 점선 칩 (계획 있는 기수만 영향)
+    sb.from("plan_items").select("cohort_id,plan_date,end_date,kind,title,status,optional").in("cohort_id", ids).range(0, 9999),
   ]);
 
   // 영상별 일별 조회(발행 후 14일)·인스타 게시물 — 테이블이 아직 없으면 오류 대신 빈 값
@@ -66,6 +68,7 @@ export async function getDayTable(
     content: (content.data ?? []) as DayRaw["content"],
     videoDaily: (videoDaily.data ?? []) as NonNullable<DayRaw["videoDaily"]>,
     ig: (ig.data ?? []) as NonNullable<DayRaw["ig"]>,
+    plans: (plans.data ?? []) as NonNullable<DayRaw["plans"]>,
   };
   const data = buildDayTable(raw, ids, today);
   return { data, all, chosen, ranks: rankVideos(raw, data), raw };

@@ -6,6 +6,8 @@ import { getLatestCohortName, resolveCohortPair } from "@/lib/cohorts";
 import { getDataHealth } from "@/lib/dataHealth";
 import { getBoard } from "@/lib/board";
 import { bandOf, settleDate } from "@/lib/dayTableCore";
+import { getTomorrowPlans } from "@/lib/plan";
+import { KIND_META, tomorrowWarning } from "@/lib/planCore";
 import DataHealthCard from "@/components/DataHealthCard";
 import CountUp from "@/components/CountUp";
 import AiBriefing from "@/components/AiBriefing";
@@ -41,7 +43,11 @@ function nextMilestone(c: { [k: string]: string | null }, today: string) {
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ cohort?: string }> }) {
   const { cohort } = await searchParams;
   // 판단판 데이터와 KPI(공식 인원·목표)는 서로 기다릴 필요가 없어 동시에 조회
-  const [board, kpi] = await Promise.all([getBoard(cohort), (cohort ? Promise.resolve(cohort) : getLatestCohortName()).then((n) => getKpi(n))]);
+  const [board, kpi, tomorrowPlans] = await Promise.all([
+    getBoard(cohort),
+    (cohort ? Promise.resolve(cohort) : getLatestCohortName()).then((n) => getKpi(n)),
+    getTomorrowPlans(),
+  ]);
   if (!board)
     return <div className="min-h-screen bg-[#F6F6F3] p-8 text-gray-700">{cohort ?? "현재 기수"} 데이터를 찾을 수 없습니다.</div>;
 
@@ -55,6 +61,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const inRecruit = !!c.pre_open && c.pre_open <= today && (!c.class_start || today < c.class_start);
   const settling = !!c.class_start && c.class_start <= today && today <= settleDate(c.class_start); // 클래스 시작 ~ 최종 집계일
   const lastAgo = (d: string | null) => (d ? `${md(d)} · ${daysAgo(d, today) === 0 ? "오늘" : `${daysAgo(d, today)}일 전`}` : "없음");
+  // 계획판: 내일 예정인데 준비 완료 체크가 안 된 항목 (내일 계획이 있을 때만 카드 표시)
+  const tw = tomorrowWarning(tomorrowPlans, today);
 
   return (
     <div className="min-h-screen bg-[#F6F6F3] text-gray-800 tabular-nums">
@@ -141,6 +149,27 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
           ))}
         </section>
+
+        {tw.total > 0 && (
+          <section aria-label="내일 계획 준비" className={`flex flex-col gap-2 rounded-xl border px-5 py-4 ${tw.notReady.length ? "border-amber-300 bg-amber-50" : "border-green-200 bg-green-50"}`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-[15px] font-bold">
+                내일({md(tw.tomorrow)}) 예정 {tw.total}건 중 준비 안 됨 {tw.notReady.length}건
+              </h2>
+              <Link href="/plan?tab=plan" className="text-[13px] font-bold text-blue-700 hover:text-blue-900">계획판에서 보기 →</Link>
+            </div>
+            {tw.notReady.length > 0 && (
+              <ul className="flex flex-wrap gap-2 text-[13px]">
+                {tw.notReady.map((p) => (
+                  <li key={p.id} className="rounded-lg bg-white px-2 py-1">
+                    <b style={{ color: KIND_META[p.kind].fg }}>{KIND_META[p.kind].label}</b> {p.title ?? ""} · 담당 {p.owner ?? "미정"}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <span className="text-[12px] text-gray-600">준비 = 계획판 항목의 &quot;준비 완료&quot; 체크 기준</span>
+          </section>
+        )}
 
         {/* 4. 최근 7일 같은 Day 비교 */}
         <section aria-label="최근 7일 Day 비교" className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-5 py-4">

@@ -1,0 +1,292 @@
+// 기수 계획판 계산 (순수 함수 — DB·Next 의존 없음, Node로 바로 테스트 가능)
+// 규칙 초안 · 칸 구간 색 · 달력 · 광고 ON 띠 · 계획 대비 실행 확인 · 내일 준비 경고 · 광고 예산
+import type { CohortFull } from "./dayTableCore";
+
+export type PlanKind = "lecture" | "live" | "kakao" | "ad" | "keycon" | "promo_short" | "etc";
+export type PlanStatus = "planned" | "done" | "canceled";
+export type AdChannel = "google_ads" | "studio_promotion" | "instagram";
+
+export type PlanItem = {
+  id: number;
+  cohort_id: number;
+  plan_date: string;
+  end_date: string | null;
+  plan_time: string | null;
+  kind: PlanKind;
+  title: string | null;
+  owner: string | null;
+  memo: string | null;
+  status: PlanStatus;
+  ready: boolean;
+  optional: boolean;
+  ad_channel: AdChannel | null;
+  ad_amount: number | null;
+  source: "manual" | "rule";
+  rule_key: string | null;
+};
+
+export type DraftItem = Pick<PlanItem, "plan_date" | "end_date" | "plan_time" | "kind" | "title" | "optional" | "memo" | "source"> & { rule_key: string };
+
+// 종류별 이름·색 (특강 보라 / 챌린지 라이브 주황 / 카톡 노랑 / 광고 빨강 / 키콘 초록 / 홍보쇼츠 파랑)
+export const KIND_META: Record<PlanKind, { label: string; bg: string; fg: string; border: string }> = {
+  lecture: { label: "특강", bg: "#EDE9FE", fg: "#5B21B6", border: "#8B5CF6" },
+  live: { label: "챌린지 라이브", bg: "#FFEDD5", fg: "#9A3412", border: "#F97316" },
+  kakao: { label: "카톡", bg: "#FEF9C3", fg: "#713F12", border: "#EAB308" },
+  ad: { label: "광고", bg: "#FEE2E2", fg: "#991B1B", border: "#EF4444" },
+  keycon: { label: "키콘", bg: "#DCFCE7", fg: "#166534", border: "#22C55E" },
+  promo_short: { label: "홍보쇼츠", bg: "#DBEAFE", fg: "#1E40AF", border: "#3B82F6" },
+  etc: { label: "기타", bg: "#F3F4F6", fg: "#374151", border: "#9CA3AF" },
+};
+export const AD_CHANNEL_LABEL: Record<AdChannel, string> = { google_ads: "Google Ads", studio_promotion: "스튜디오 프로모션", instagram: "인스타" };
+export const STATUS_LABEL: Record<PlanStatus, string> = { planned: "계획", done: "완료", canceled: "취소" };
+
+// 칸 배경 = 구간 색 (사전등록 회색 / 1차EB 연파랑 / 대기 흰색 / 2차EB 파랑 / 정규 노랑 / 추가 보라 / 클래스 첫 주 초록)
+export const PLAN_PHASE_BG: Record<string, string> = {
+  사전등록: "#F3F4F6",
+  "1차EB": "#E0F2FE",
+  대기: "#FFFFFF",
+  "2차EB": "#BFDBFE",
+  정규: "#FEF3C7",
+  추가: "#EDE9FE",
+  "클래스 첫 주": "#DCFCE7",
+};
+
+const DAY_MS = 86400000;
+const toMs = (d: string) => Date.parse(d + "T00:00:00Z");
+export const addDays = (d: string, n: number) => new Date(toMs(d) + n * DAY_MS).toISOString().slice(0, 10);
+export const diffDays = (a: string, b: string) => Math.round((toMs(b) - toMs(a)) / DAY_MS);
+const dow = (d: string) => new Date(toMs(d)).getUTCDay(); // 일0 … 토6
+
+// 최종 집계일 = 클래스 시작일 이후 첫 일요일 (dayTableCore.settleDate와 같은 규칙)
+export function settleOf(classStart: string): string {
+  return addDays(classStart, (7 - dow(classStart)) % 7 || 7);
+}
+
+export function dayNumber(c: Pick<CohortFull, "pre_open">, date: string): number | null {
+  if (!c.pre_open || date < c.pre_open) return null;
+  return diffDays(c.pre_open, date) + 1;
+}
+
+// 칸 구간 (모집 기간 밖이면 null). 일정이 아직 비어 있으면 사전등록 이후는 모두 '사전등록'
+export function planPhase(c: CohortFull, date: string): string | null {
+  if (!c.pre_open || date < c.pre_open) return null;
+  if (c.class_start && date >= c.class_start) return date <= settleOf(c.class_start) ? "클래스 첫 주" : null;
+  // 경계 날짜가 비어 있으면 그 구간에 머문다 (다음 날짜 입력 전)
+  if (!c.eb1_open || date < c.eb1_open) return "사전등록";
+  if (!c.eb1_close || date <= c.eb1_close) return "1차EB";
+  if (!c.eb2_open || date < c.eb2_open) return "대기";
+  if (!c.eb2_close || date <= c.eb2_close) return "2차EB";
+  if (!c.reg_open || date < c.reg_open) return "대기";
+  if (!c.reg_close || date <= c.reg_close) return "정규";
+  return "추가";
+}
+
+export function phaseStartLabel(c: CohortFull, date: string): string | null {
+  const defs: [string | null, string][] = [
+    [c.pre_open, "사전등록 시작"],
+    [c.eb1_open, "1차EB 오픈"],
+    [c.eb1_close ? addDays(c.eb1_close, 1) : null, "대기 시작"],
+    [c.eb2_open, "2차EB 오픈"],
+    [c.eb2_close ? addDays(c.eb2_close, 1) : null, "대기 시작"],
+    [c.reg_open, "정규 오픈"],
+    [c.reg_close ? addDays(c.reg_close, 1) : null, "추가 모집"],
+    [c.class_start, "클래스 시작"],
+    [c.class_start ? settleOf(c.class_start) : null, "최종 집계"],
+  ];
+  for (const [d, label] of defs) if (d === date) return label;
+  return null;
+}
+
+// 일요일 시작 달력 (빈 칸 = null)
+export function monthWeeks(year: number, month: number): (string | null)[][] {
+  const first = `${year}-${String(month).padStart(2, "0")}-01`;
+  const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const cells: (string | null)[] = Array(dow(first)).fill(null);
+  for (let i = 0; i < days; i++) cells.push(addDays(first, i));
+  while (cells.length % 7) cells.push(null);
+  const weeks: (string | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
+
+// 보여줄 달 = 사전등록 달 ~ 최종 집계 달 (클래스 시작일이 없으면 사전등록 달부터 3개월)
+export function planMonths(c: Pick<CohortFull, "pre_open" | "class_start">, today?: string): [number, number][] {
+  const start = c.pre_open ?? today;
+  if (!start) return [];
+  const end = c.class_start ? settleOf(c.class_start) : null;
+  let y = Number(start.slice(0, 4)), m = Number(start.slice(5, 7));
+  const count = end ? (Number(end.slice(0, 4)) - y) * 12 + Number(end.slice(5, 7)) - m + 1 : 3;
+  const out: [number, number][] = [];
+  for (let i = 0; i < Math.max(1, count); i++) {
+    out.push([y, m]);
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
+// 광고 ON 날짜 (취소 제외, 켜는 날 ~ 끄는 날)
+export function adOnDates(items: Pick<PlanItem, "kind" | "plan_date" | "end_date" | "status">[]): Set<string> {
+  const out = new Set<string>();
+  for (const it of items) {
+    if (it.kind !== "ad" || it.status === "canceled") continue;
+    const end = it.end_date && it.end_date >= it.plan_date ? it.end_date : it.plan_date;
+    for (let d = it.plan_date; d <= end; d = addDays(d, 1)) out.add(d);
+  }
+  return out;
+}
+
+// ── 규칙으로 초안 만들기
+const NEED: [keyof CohortFull, string][] = [
+  ["pre_open", "사전등록 오픈"], ["eb1_open", "1차EB 오픈"], ["eb1_close", "1차EB 마감"], ["eb2_open", "2차EB 오픈"],
+  ["eb2_close", "2차EB 마감"], ["reg_open", "정규 오픈"], ["reg_close", "정규 마감"], ["class_start", "클래스 시작"],
+];
+
+// 공백(prev~next, 양끝 제외) 안에서 가운데에 가장 가까운 일요일 (게시 원칙: 일요일 저녁~월요일 아침). 없으면 가운데 날
+function sundayNear(prev: string, next: string): string {
+  const span = diffDays(prev, next);
+  const mid = addDays(prev, Math.floor(span / 2));
+  let best: string | null = null;
+  for (let i = 1; i < span; i++) {
+    const d = addDays(prev, i);
+    if (dow(d) !== 0) continue;
+    if (best === null || Math.abs(diffDays(mid, d)) < Math.abs(diffDays(mid, best))) best = d;
+  }
+  return best ?? mid;
+}
+
+export function generateDraft(c: CohortFull): { ok: true; items: DraftItem[] } | { ok: false; missing: string[] } {
+  const missing = NEED.filter(([k]) => !c[k]).map(([, label]) => label);
+  if (missing.length) return { ok: false, missing };
+  const C = c as CohortFull & Record<(typeof NEED)[number][0], string>;
+  const settle = settleOf(C.class_start);
+  const items: DraftItem[] = [];
+  const add = (rule_key: string, plan_date: string, kind: PlanKind, title: string, o: Partial<DraftItem> = {}) =>
+    items.push({ rule_key, plan_date, end_date: null, plan_time: null, kind, title, optional: false, memo: null, source: "rule", ...o });
+
+  const sales: [string, string, string, string][] = [
+    ["eb1", "1차EB", C.eb1_open, C.eb1_close],
+    ["eb2", "2차EB", C.eb2_open, C.eb2_close],
+    ["reg", "정규", C.reg_open, C.reg_close],
+  ];
+  for (const [k, label, open, close] of sales) {
+    const eve = addDays(open, -1);
+    if (k === "eb1") add(`lecture:${k}`, eve, "lecture", `${label} 전날 특강`, { plan_time: "20:00" });
+    else add(`live:${k}`, eve, "live", `${label} 전날 챌린지 라이브`, { plan_time: "20:00" });
+    add(`promo_short:${k}`, eve, "promo_short", `${label} 홍보쇼츠`);
+    add(`ad:${k}`, eve, "ad", `${label} 광고`, { end_date: k === "reg" ? settle : close, memo: k === "reg" ? "정규 3일 집중, 이후 소액" : null });
+    add(`kakao:${k}:notice`, eve, "kakao", k === "eb1" ? "특강 안내" : "챌린지 라이브 안내");
+    add(`kakao:${k}:open`, open, "kakao", `${label} 오픈`);
+    const mid = addDays(open, Math.floor(diffDays(open, close) / 2));
+    if (open < mid && mid < close) add(`kakao:${k}:mid`, mid, "kakao", `${label} 중간`, { optional: true });
+    add(`kakao:${k}:close`, close, "kakao", `${label} 마감`);
+  }
+  const waits: [string, string, string, string][] = [
+    ["wait1", addDays(C.eb1_close, 1), C.eb2_open, "2차EB"],
+    ["wait2", addDays(C.eb2_close, 1), C.reg_open, "정규"],
+  ];
+  for (const [w, start, nextOpen, label] of waits) {
+    const kc = addDays(nextOpen, -10);
+    add(`keycon:${w}`, kc < start ? start : kc, "keycon", `${label} 전 키콘`);
+  }
+  // 공백 채움 카톡: 사전등록(오픈일~첫 카톡)·대기 기간에 카톡 사이가 7일 넘게 비면 1통 (일요일 저녁)
+  const ks = items.filter((x) => x.kind === "kakao").map((x) => x.plan_date).sort();
+  const gaps: [string, string, string][] = [
+    ["pre", C.pre_open, "특강 공지"],
+    ["wait1", addDays(C.eb1_close, 1), "대기 공지 (공백 채움)"],
+    ["wait2", addDays(C.eb2_close, 1), "대기 공지 (공백 채움)"],
+  ];
+  for (const [g, start, title] of gaps) {
+    const before = ks.filter((d) => d < start);
+    const prev = g === "pre" ? C.pre_open : before[before.length - 1];
+    const next = ks.find((d) => d >= start);
+    if (!prev || !next) continue;
+    if (diffDays(prev, next) > 7) add(`kakao:${g}:gap`, sundayNear(prev, next), "kakao", title, { plan_time: "20:00" });
+  }
+  return { ok: true, items: items.sort((a, b) => a.plan_date.localeCompare(b.plan_date) || a.rule_key.localeCompare(b.rule_key)) };
+}
+
+// 이미 있는 규칙 항목은 건너뜀 (덮어쓰지 않음)
+export function draftDiff(existing: { rule_key: string | null }[], draft: DraftItem[]) {
+  const have = new Set(existing.map((x) => x.rule_key).filter((k): k is string => !!k));
+  return { add: draft.filter((d) => !have.has(d.rule_key)), skip: draft.filter((d) => have.has(d.rule_key)) };
+}
+
+// ── 계획 대비 실행 확인
+export type ExecStatus = "예정" | "완료" | "완료(직접)" | "유예" | "누락" | "사람 확인" | "취소";
+export type ExecRecords = {
+  kakao: string[]; // 그 기수 카톡 발송일
+  ads: { date: string; platform: string }[]; // 그 기수 광고비 시작일·매체
+  content: { date: string; category: string | null }[]; // 그 기수 콘텐츠 기록
+  videos: { date: string; kind: string | null }[]; // 유튜브 영상 발행일·종류 (숏폼/롱폼)
+};
+export const GRACE_DAYS = 2;
+
+export function checkExecution(
+  it: Pick<PlanItem, "kind" | "plan_date" | "status" | "ad_channel">,
+  rec: ExecRecords,
+  today: string
+): ExecStatus {
+  if (it.status === "canceled") return "취소";
+  if (it.plan_date > today) return "예정";
+  const d = it.plan_date;
+  let matched = false;
+  let human = false;
+  if (it.kind === "kakao") matched = rec.kakao.includes(d);
+  else if (it.kind === "ad") {
+    const want = it.ad_channel === "instagram" ? "instagram" : it.ad_channel ? "youtube" : null;
+    matched = rec.ads.some((a) => Math.abs(diffDays(d, a.date)) <= 1 && (!want || a.platform === want));
+  } else if (it.kind === "lecture") matched = rec.content.some((x) => x.date === d && x.category === "특강");
+  else if (it.kind === "live") matched = rec.content.some((x) => x.date === d && x.category === "라이브");
+  else if (it.kind === "promo_short") human = rec.videos.some((v) => v.date === d && v.kind === "숏폼");
+  else if (it.kind === "keycon") human = rec.videos.some((v) => v.date === d && v.kind === "롱폼");
+  else human = true; // 기타 = 사람 확인
+  if (matched) return "완료";
+  if (it.status === "done") return "완료(직접)";
+  if (human) return "사람 확인";
+  return today <= addDays(d, GRACE_DAYS) ? "유예" : "누락";
+}
+
+// 판단판 경고: 내일 예정(계획 상태) N건 중 준비 완료 체크 안 된 M건
+export function tomorrowWarning<T extends Pick<PlanItem, "plan_date" | "status" | "ready">>(items: T[], today: string) {
+  const tomorrow = addDays(today, 1);
+  const list = items.filter((x) => x.plan_date === tomorrow && x.status === "planned");
+  return { tomorrow, total: list.length, notReady: list.filter((x) => !x.ready) };
+}
+
+// ── 광고 예산
+export function budgetSplit(total: number, s: { eb1: number; eb2: number; regular: number }) {
+  const eb1 = Math.round((total * s.eb1) / 100), eb2 = Math.round((total * s.eb2) / 100), regular = Math.round((total * s.regular) / 100);
+  return { eb1, eb2, regular, sum: eb1 + eb2 + regular };
+}
+
+// 지난 기수 같은 구간 광고비(시작일 기준)·등록 수(결제일 기준). 광고 구간 = 오픈 3일 전 ~ 마감(정규는 최종 집계일)
+export type PastBucket = { key: "eb1" | "eb2" | "regular" | "other"; label: string; youtube: number; instagram: number; count: number; regs: number | null };
+export function pastBuckets(
+  c: CohortFull,
+  ads: { period_start: string | null; platform: string; cost: number | null }[],
+  regs: { date: string; net: number }[]
+): PastBucket[] {
+  const settle = c.class_start ? settleOf(c.class_start) : null;
+  const win: [PastBucket["key"], string, string | null, string | null, string | null, string | null][] = [
+    ["eb1", "1차EB", c.eb1_open ? addDays(c.eb1_open, -3) : null, c.eb1_close, c.eb1_open, c.eb1_close],
+    ["eb2", "2차EB", c.eb2_open ? addDays(c.eb2_open, -3) : null, c.eb2_close, c.eb2_open, c.eb2_close],
+    ["regular", "정규~첫 주", c.reg_open ? addDays(c.reg_open, -3) : null, settle, c.reg_open, settle],
+  ];
+  const out: PastBucket[] = [
+    ...win.map(([key, label]) => ({ key, label, youtube: 0, instagram: 0, count: 0, regs: 0 as number | null })),
+    { key: "other", label: "그 외 (사전등록·대기 중 시작)", youtube: 0, instagram: 0, count: 0, regs: null },
+  ];
+  for (const a of ads) {
+    if (!a.period_start) continue;
+    const i = win.findIndex(([, , from, to]) => !!from && !!to && a.period_start! >= from && a.period_start! <= to);
+    const b = out[i >= 0 ? i : 3];
+    if (a.platform === "instagram") b.instagram += a.cost ?? 0;
+    else b.youtube += a.cost ?? 0;
+    b.count++;
+  }
+  win.forEach(([, , , , from, to], i) => {
+    out[i].regs = from && to ? regs.filter((r) => r.date >= from && r.date <= to).reduce((s, r) => s + r.net, 0) : null;
+  });
+  return out;
+}

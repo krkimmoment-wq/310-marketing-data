@@ -20,10 +20,10 @@ export const MENUS: MenuDef[] = [
   },
   {
     // 메뉴 이름 = 기수 관리에 등록된 가장 최근 기수 + " 계획" (예: 17기 계획)
-    href: "/plan", num: "③", label: "계획", defaultTab: "records", dynamicLabel: true,
+    href: "/plan", num: "③", label: "계획", defaultTab: "plan", dynamicLabel: true,
     tabs: [
-      { key: "plan", label: "계획 캘린더", ready: false },
-      { key: "budget", label: "광고 예산", ready: false },
+      { key: "plan", label: "계획 캘린더" },
+      { key: "budget", label: "광고 예산" },
       { key: "records", label: "기록 캘린더" },
     ],
   },

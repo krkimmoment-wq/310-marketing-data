@@ -42,15 +42,3 @@ export default function TabShell({
     </div>
   );
 }
-
-// 아직 만들지 않은 탭 자리
-export function NotReady({ what, when }: { what: string; when: string }) {
-  return (
-    <div className="min-h-screen bg-[#F6F6F3] px-6 md:px-8 pt-2">
-      <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-gray-700">
-        <p className="text-lg font-bold text-gray-900">{what} — 준비 중</p>
-        <p className="mt-2 text-sm">{when}에 이 탭에서 만듭니다. 지금은 [기록 캘린더] 탭을 이용해 주세요.</p>
-      </div>
-    </div>
-  );
-}

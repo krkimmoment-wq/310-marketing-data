@@ -4,7 +4,7 @@
 import { useState } from "react";
 import type { DayCell, DayTableData } from "@/lib/dayTableCore";
 import { compareRows, phaseView, type PhaseSum } from "@/lib/dashboardCore";
-import { Chips, ChipLegend, Diff, PHASE_STYLE, PhaseBadge, md } from "./ui";
+import { Chips, ChipLegend, Diff, PHASE_STYLE, PhaseBadge, PlanChips, md } from "./ui";
 
 type Sel = { col: number; day: number } | null;
 type Mode = "day" | "phase";
@@ -21,7 +21,14 @@ function CellButton({ cell, selected, onClick }: { cell: DayCell; selected: bool
       style={{ borderLeft: `4px solid ${PHASE_STYLE[cell.phase]?.strip ?? "#E5E7EB"}` }}
     >
       {cell.cum === null ? (
-        <span className="text-[12px] text-gray-400">{md(cell.date)} · 아직</span>
+        cell.plans.length ? (
+          <>
+            <span className="text-[11px] text-gray-600">{md(cell.date)}({wd(cell.date)}) · 계획</span>
+            <PlanChips cell={cell} size="xs" />
+          </>
+        ) : (
+          <span className="text-[12px] text-gray-400">{md(cell.date)} · 아직</span>
+        )
       ) : (
         <>
           <span className="flex items-baseline justify-between gap-2">
@@ -30,6 +37,7 @@ function CellButton({ cell, selected, onClick }: { cell: DayCell; selected: bool
           </span>
           <span className="text-[11px] text-gray-600">{md(cell.date)}({wd(cell.date)}) · {cell.phase}</span>
           <Chips cell={cell} size="xs" />
+          <PlanChips cell={cell} size="xs" />
         </>
       )}
     </button>
@@ -60,6 +68,7 @@ export default function CompareTable({ data }: { data: DayTableData }) {
   const selCol = sel ? columns[sel.col] : null;
   const selCell: DayCell | null = sel && selCol ? selCol.cells[sel.day - 1] ?? null : null;
   const hasPre = columns.some((c) => c.pre !== 0);
+  const hasPlans = columns.some((c) => c.cells.some((x) => x.plans.length));
   const preAvg = columns.length > 1 ? columns.slice(1).reduce((s, c) => s + c.pre, 0) / (columns.length - 1) : null;
   const pRows = mode === "phase" ? phaseView(data) : [];
   const folded = (phase: string) => FOLDED_BY_DEFAULT.includes(phase) && !open.includes(phase);
@@ -102,6 +111,7 @@ export default function CompareTable({ data }: { data: DayTableData }) {
           사전·대기
         </span>
         <ChipLegend />
+        {hasPlans && <span className="text-[12px] text-gray-600">· 점선 칩 = 계획판의 계획 (실제 기록 아님)</span>}
       </div>
 
       <div className="flex flex-wrap items-start gap-4">
@@ -113,6 +123,7 @@ export default function CompareTable({ data }: { data: DayTableData }) {
                 {columns.map((c, i) => (
                   <th key={c.cohortId} className={`sticky top-0 z-20 border-b border-gray-200 bg-gray-50 px-2 py-2.5 text-left ${i === 0 ? "font-black text-red-700" : "font-medium"}`}>
                     {c.name}
+                    {c.planOnly && <span className="ml-1 rounded border border-dashed border-gray-400 px-1 text-[10px] font-bold text-gray-600">계획만</span>}
                     <span className="ml-1 text-[11px] font-normal text-gray-500">Day1 {md(c.day1)}</span>
                   </th>
                 ))}
@@ -225,6 +236,14 @@ export default function CompareTable({ data }: { data: DayTableData }) {
                   <li key={i}>{a.text}</li>
                 ))}
               </ul>
+              {selCell.plans.length > 0 && (
+                <ul className="flex flex-col gap-1 rounded-lg border border-dashed border-gray-300 p-2 leading-relaxed">
+                  <li className="text-[12px] font-bold text-gray-600">계획 (점선 칩)</li>
+                  {selCell.plans.map((p, i) => (
+                    <li key={i}>{p.title ?? p.kind}{p.optional ? " (선택)" : ""}</li>
+                  ))}
+                </ul>
+              )}
             </>
           ) : (
             <span className="text-gray-500">표에서 칸을 선택하세요.</span>

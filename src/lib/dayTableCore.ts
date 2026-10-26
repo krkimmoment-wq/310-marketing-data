@@ -16,9 +16,12 @@ export type CohortFull = {
   class_start: string | null;
 };
 
-export type ActionKind = "special" | "pool" | "short" | "long" | "kakao" | "community" | "memo";
+export type ActionKind = "special" | "live" | "pool" | "short" | "long" | "kakao" | "community" | "memo";
 
 export type DayAction = { kind: ActionKind; text: string };
+
+// 계획판(plan_items)의 계획 — Day 비교에 점선 칩으로 겹쳐 표시 (실제 기록 칩과 따로)
+export type DayPlan = { kind: string; title: string | null; optional: boolean };
 
 export type DayCell = {
   day: number;
@@ -30,6 +33,7 @@ export type DayCell = {
   clicks: number | null; // 링크 클릭 (Bitly 일별)
   dn: number | null; // 클래스 시작까지 남은 일수 (class_start 없으면 null)
   actions: DayAction[];
+  plans: DayPlan[];
   isToday: boolean;
 };
 
@@ -42,6 +46,7 @@ export type DayColumn = {
   pre: number; // Day 1 이전 결제 + 다른 기수에서 이전해 온 인원 (누적이 대시보드 실등록과 같아지도록)
   maxNet: number;
   ongoing: boolean;
+  planOnly: boolean; // 아직 모집 시작 전 = 계획만 있는 기수
   cells: DayCell[]; // index 0 = Day 1
 };
 
@@ -58,6 +63,7 @@ export type DayRaw = {
   bitly: { click_date: string; clicks: number | null }[];
   kakao: { cohort_id: number; sent_date: string | null; title: string | null; sent_count: number | null; click_count: number | null }[];
   content: { cohort_id: number; pub_date: string | null; category: string | null; title: string | null }[];
+  plans?: { cohort_id: number; plan_date: string; end_date: string | null; kind: string; title: string | null; status: string; optional: boolean }[];
 };
 
 const DAY_MS = 86400000;
@@ -121,8 +127,12 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
     const c = raw.cohorts.find((x) => x.id === id);
     if (!c || !c.pre_open) continue;
     const day1 = c.pre_open;
-    // 표 끝 = 최종 집계일(클래스 시작 후 첫 일요일). 클래스 시작일이 없으면 모집 종료일·오늘
-    const end = c.class_start ? settleDate(c.class_start) : c.ended_at ?? (today >= day1 ? today : day1);
+    // 계획(취소 제외) — 계획이 있는 기수만 해당, 없으면 표가 그대로
+    const cohortPlans = (raw.plans ?? []).filter((p) => p.cohort_id === id && p.status !== "canceled");
+    const planEnd = (p: (typeof cohortPlans)[number]) => (p.kind === "ad" && p.end_date && p.end_date > p.plan_date ? p.end_date : p.plan_date);
+    // 표 끝 = 최종 집계일(클래스 시작 후 첫 일요일). 클래스 시작일이 없으면 모집 종료일·오늘. 계획이 그 뒤까지 있으면 마지막 계획 날까지
+    let end = c.class_start ? settleDate(c.class_start) : c.ended_at ?? (today >= day1 ? today : day1);
+    for (const p of cohortPlans) if (planEnd(p) > end) end = planEnd(p);
     const lastDay = Math.max(1, diffDays(day1, end) + 1);
 
     // 날짜별 순등록
@@ -184,6 +194,7 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
       for (const x of cohortContent.filter((x) => x.pub_date === date)) {
         const kind: ActionKind =
           x.category === "특강" ? "special"
+          : x.category === "라이브" ? "live"
           : x.category === "커뮤니티" ? "community"
           : x.category === "프로모션" ? "pool"
           : x.category === "숏폼" ? "short"
@@ -197,11 +208,15 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
         date,
         net,
         cum: future ? null : cum,
-        phase: c.class_start && date >= c.class_start ? "클래스 후" : bandOf(c, date),
+        // 일정(1차EB 오픈일)이 아직 비어 있는 기수는 사전등록으로 표시
+        phase: c.class_start && date >= c.class_start ? "클래스 후" : c.eb1_open ? bandOf(c, date) : "사전등록",
         phaseStart: starts.get(date) ?? null,
         clicks: future ? null : clicksByDay.get(date) ?? null,
         dn: c.class_start ? diffDays(date, c.class_start) : null,
         actions,
+        plans: cohortPlans
+          .filter((p) => p.plan_date <= date && date <= planEnd(p))
+          .map((p) => ({ kind: p.kind, title: p.title, optional: p.optional })),
         isToday: date === today,
       });
     }
@@ -215,6 +230,7 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
       pre,
       maxNet,
       ongoing: day1 <= today && today <= end,
+      planOnly: day1 > today,
       cells,
     });
   }
