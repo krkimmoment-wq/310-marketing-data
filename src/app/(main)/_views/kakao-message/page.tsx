@@ -30,8 +30,9 @@ export default async function KakaoMessagePage({
   const ctr = sent ? Math.round((clk / sent) * 1000) / 10 : 0; // 클릭 ÷ 발송
   const cpc = clk ? Math.round(totalCost / clk) : 0; // 비용 ÷ 클릭
   const won = (n: number) => n.toLocaleString("ko-KR");
-  const cards = [
-    { label: "클릭률 · 클릭/발송", value: `${ctr}%`, sub: `클릭 ${won(clk)} / 발송 ${won(sent)}` },
+  const CTR_NOTE = "100% 넘을 수 있음 · 영상·특강 링크 카톡은 따로 비교"; // 클릭 = 카카오 '전체 클릭수'(누른 횟수)
+  const cards: { label: string; value: string; sub: string; note?: string }[] = [
+    { label: "클릭률 · 클릭/발송", value: `${ctr}%`, sub: `클릭 ${won(clk)} / 발송 ${won(sent)}`, note: CTR_NOTE },
     { label: "CPC · 클릭당 비용", value: `₩${won(cpc)}`, sub: `클릭 ${won(clk)}회` },
     { label: "총 발송수", value: won(sent), sub: `메시지 ${list.length}건` },
     { label: "총 발송비용", value: `₩${won(totalCost)}`, sub: "누적 발송비" },
@@ -54,6 +55,7 @@ export default async function KakaoMessagePage({
             <div className="text-xs text-slate-400">{c.label}</div>
             <div className="font-hud text-2xl font-black text-cyan-300 mt-2 jarvis-glow">{c.value}</div>
             <div className="text-[11px] text-slate-400 mt-1">{c.sub}</div>
+            {c.note && <div className="text-[11px] text-slate-400 mt-0.5">{c.note}</div>}
           </div>
         ))}
       </div>
@@ -73,7 +75,10 @@ export default async function KakaoMessagePage({
                 <th className="px-4 py-2 text-left">발송수</th>
                 <th className="px-4 py-2 text-left">노출</th>
                 <th className="px-4 py-2 text-left">클릭</th>
-                <th className="px-4 py-2 text-left">클릭률</th>
+                <th className="px-4 py-2 text-left">
+                  클릭률
+                  <span className="block text-[10px] font-normal">{CTR_NOTE}</span>
+                </th>
                 <th className="px-4 py-2 text-left">발송비용</th>
                 <th className="px-4 py-2 text-left">관리</th>
               </tr>

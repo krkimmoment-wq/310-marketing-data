@@ -58,7 +58,7 @@ export default function KakaoMsgForm({ cohortId }: { cohortId?: number }) {
     );
   }
 
-  const num = (k: keyof typeof form, label: string) => (
+  const num = (k: keyof typeof form, label: string, help?: string) => (
     <label className="text-sm">
       <span className="text-slate-400">{label}</span>
       <input
@@ -67,6 +67,7 @@ export default function KakaoMsgForm({ cohortId }: { cohortId?: number }) {
         onChange={(e) => set(k, Number(e.target.value) as never)}
         className="mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400"
       />
+      {help && <span className="mt-1 block text-[11px] text-slate-400">{help}</span>}
     </label>
   );
 
@@ -102,7 +103,7 @@ export default function KakaoMsgForm({ cohortId }: { cohortId?: number }) {
         </label>
         {num("sent_count", "발송수")}
         {num("impression_count", "노출수(참고)")}
-        {num("click_count", "클릭수")}
+        {num("click_count", "클릭수", "카카오 관리자 '전체 클릭수'(누른 횟수) · 발송 24시간 뒤 값 입력")}
         {num("total_cost", "발송비용 (원)")}
       </div>
       <div className="flex gap-2">

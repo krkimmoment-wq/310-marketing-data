@@ -115,7 +115,7 @@ export default function KakaoMsgRow({ m }: { m: KakaoMsg }) {
       <td className="px-3 py-2"><input type="date" value={form.sent_date} onChange={(e) => set("sent_date", e.target.value)} className={inputCls} /></td>
       <td className="px-3 py-2"><input type="number" value={form.sent_count} onChange={(e) => set("sent_count", Number(e.target.value))} className={inputCls} /></td>
       <td className="px-3 py-2"><input type="number" value={form.impression_count} onChange={(e) => set("impression_count", Number(e.target.value))} className={inputCls} /></td>
-      <td className="px-3 py-2"><input type="number" value={form.click_count} onChange={(e) => set("click_count", Number(e.target.value))} className={inputCls} /></td>
+      <td className="px-3 py-2"><input type="number" value={form.click_count} onChange={(e) => set("click_count", Number(e.target.value))} className={inputCls} title="카카오 관리자 '전체 클릭수'(누른 횟수) · 발송 24시간 뒤 값 입력" aria-label="클릭수 (카카오 관리자 '전체 클릭수', 누른 횟수 · 발송 24시간 뒤 값)" /></td>
       <td className="px-3 py-2 text-cyan-300 text-xs">{ctrOf({ click_count: form.click_count, sent_count: form.sent_count })}</td>
       <td className="px-3 py-2"><input type="number" value={form.total_cost} onChange={(e) => set("total_cost", Number(e.target.value))} className={inputCls} /></td>
       <td className="px-3 py-2 whitespace-nowrap">
