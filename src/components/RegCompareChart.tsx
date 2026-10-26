@@ -58,8 +58,8 @@ export default function RegCompareChart({ data }: { data: NonNullable<RegDaily> 
         <text x={x(curToday)} y={PAD.t + 2} textAnchor="middle" fontSize={9} fill="#22d3ee">오늘</text>
 
         {/* 직전 기수: 오늘까지 실선, 이후 점선(미래 참고) */}
-        <polyline points={prevSolid} fill="none" stroke="#f59e0b" strokeWidth={2} />
-        <polyline points={prevDashed} fill="none" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 4" opacity={0.55} />
+        <polyline points={prevSolid} fill="none" stroke="#d97706" strokeWidth={2} />
+        <polyline points={prevDashed} fill="none" stroke="#d97706" strokeWidth={2} strokeDasharray="4 4" opacity={0.55} />
         {/* 현재 기수 */}
         <polyline points={curLine} fill="none" stroke="#22d3ee" strokeWidth={2.5} />
 
@@ -68,7 +68,7 @@ export default function RegCompareChart({ data }: { data: NonNullable<RegDaily> 
           <g>
             <line x1={x(hr.dn)} x2={x(hr.dn)} y1={PAD.t} y2={H - PAD.b} stroke="#475569" strokeWidth={1} />
             {hr.curCum != null && <circle cx={x(hr.dn)} cy={y(hr.curCum)} r={3.5} fill="#22d3ee" />}
-            <circle cx={x(hr.dn)} cy={y(hr.prevCum)} r={3.5} fill="#f59e0b" />
+            <circle cx={x(hr.dn)} cy={y(hr.prevCum)} r={3.5} fill="#d97706" />
           </g>
         )}
       </svg>

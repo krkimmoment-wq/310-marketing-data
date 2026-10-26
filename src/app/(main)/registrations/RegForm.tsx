@@ -113,7 +113,7 @@ export default function RegForm({ cohortId }: { cohortId?: number }) {
         </label>
         <label className="text-sm">
           <span className="text-slate-400">
-            금액 (원){PRICE[form.section] == null && <span className="text-amber-500"> · 직접 입력</span>}
+            금액 (원){PRICE[form.section] == null && <span className="text-amber-700"> · 직접 입력</span>}
           </span>
           <input
             type="number"

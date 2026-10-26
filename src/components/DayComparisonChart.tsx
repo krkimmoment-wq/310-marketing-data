@@ -154,7 +154,7 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
               <line x1={xOf(m.day)} y1={PAD.t + 8} x2={xOf(m.day)} y2={H - PAD.b}
                 stroke="#f59e0b" strokeWidth={1} strokeDasharray="3 3" opacity={0.45} />
               <text x={xOf(m.day)} y={PAD.t + 4} textAnchor="middle" fontSize={8}
-                fill="#fbbf24" fontFamily="monospace" opacity={0.85}>{m.label}</text>
+                fill="#b45309" fontFamily="monospace" opacity={0.85}>{m.label}</text>
             </g>
           ))}
 
@@ -193,7 +193,7 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
             return (
               <g key={i} style={{ cursor: "help" }}>
                 <title>{`D${a.day >= 0 ? "+" : ""}${a.day} · ${a.text}`}</title>
-                <circle cx={xOf(a.day)} cy={yOf(pt.y) - 11} r={5.5} fill="#ff9f43" stroke="#070b16" strokeWidth={1.5} />
+                <circle cx={xOf(a.day)} cy={yOf(pt.y) - 11} r={5.5} fill="#ea580c" stroke="#070b16" strokeWidth={1.5} />
                 <text x={xOf(a.day)} y={yOf(pt.y) - 8} textAnchor="middle" fontSize={7}>📌</text>
               </g>
             );
@@ -205,7 +205,7 @@ export default function DayComparisonChart({ data }: { data: DayComparison }) {
             <line x1={xOf(todayDay)} y1={PAD.t} x2={xOf(todayDay)} y2={H - PAD.b}
               stroke="#fb7185" strokeWidth={1.2} strokeDasharray="4 3" opacity={0.85} />
             <text x={xOf(todayDay)} y={H - PAD.b + 26} textAnchor="middle" fontSize={9}
-              fill="#fb7185" fontFamily="monospace" fontWeight="bold">오늘</text>
+              fill="#be123c" fontFamily="monospace" fontWeight="bold">오늘</text>
           </g>
         )}
 

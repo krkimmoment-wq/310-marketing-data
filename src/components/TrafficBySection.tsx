@@ -2,7 +2,7 @@
 import type { TrafficBySection, TrafficMix } from "@/lib/ytanalytics";
 
 const GROUPS = [
-  { key: "high", label: "의도(검색·구독)", color: "#22c55e" },
+  { key: "high", label: "의도(검색·구독)", color: "#15803d" },
   { key: "algo", label: "알고리즘(쇼츠피드·추천)", color: "#a855f7" },
   { key: "rest", label: "광고·외부", color: "#64748b" },
 ] as const;
