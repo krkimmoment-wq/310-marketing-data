@@ -152,10 +152,12 @@ export function buildAlerts(input: {
   adDays: { day: string; views: number | null }[];
   unpaid: number;
   diff: number | null;
+  activeUntil?: string; // 카톡 공백·광고 끊김 경고를 이 날까지 유지 (= 최종 집계일). 없으면 클래스 시작 전날까지
 }): Alert[] {
   const { today, cohort: c } = input;
   const out: Alert[] = [];
-  const inRecruit = !!c.pre_open && c.pre_open <= today && (!c.class_start || today < c.class_start);
+  const inRecruit =
+    !!c.pre_open && c.pre_open <= today && (input.activeUntil ? today <= input.activeUntil : !c.class_start || today < c.class_start);
   const sent = input.kakaoDates.filter((d) => d <= today).sort();
   const closes: [string | null, string][] = [[c.eb1_close, "1차 얼리버드"], [c.eb2_close, "2차 얼리버드"], [c.reg_close, "정규 모집"]];
   const closing = closes.find(([d]) => d === today);
@@ -164,7 +166,7 @@ export function buildAlerts(input: {
     const lastK = sent[sent.length - 1];
     const gap = lastK ? diffDays(lastK, today) : null;
     if (gap === null || gap >= 7) out.push({ level: "check", text: gap === null ? "카톡 공백: 이번 기수 발송 기록 없음" : `카톡 공백 ${gap}일째 (마지막 ${md(lastK)})` });
-    const adDays = input.adDays.filter((a) => (a.views ?? 0) > 1000 && c.pre_open! <= a.day && a.day <= today).map((a) => a.day).sort();
+    const adDays = input.adDays.filter((a) => (a.views ?? 0) >= 1000 && c.pre_open! <= a.day && a.day <= today).map((a) => a.day).sort(); // 광고 칩과 같은 1,000회 기준
     const lastAd = adDays[adDays.length - 1];
     const adGap = lastAd ? diffDays(lastAd, today) : null;
     if (adGap === null || adGap >= 3)

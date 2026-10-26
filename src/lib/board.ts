@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCohortsChrono, kstToday, pickCurrentCohort, type CohortRow } from "@/lib/cohorts";
 import { getDayTable } from "@/lib/dayTable";
 import { buildAlerts, compareRows, conclusion, type Alert, type CompareRow, type Conclusion } from "@/lib/dashboardCore";
-import type { CohortFull, DayTableData } from "@/lib/dayTableCore";
+import { AD_DAY_MIN_VIEWS, settleDate, type CohortFull, type DayTableData } from "@/lib/dayTableCore";
 
 // 기준 기수(선택 없으면 모집 시작한 기수 중 최신) + 비교 기수(그보다 먼저 시작한 기수 중 최근 3개)
 export async function boardCohorts(selected?: string, today = kstToday()) {
@@ -62,12 +62,20 @@ export async function getBoard(selected?: string): Promise<BoardData | null> {
   const rows = compareRows(table);
   const con = conclusion(table, today);
   const kakaoDates = raw.kakao.filter((k) => k.cohort_id === cohort.id && k.sent_date).map((k) => k.sent_date as string);
-  const alerts = buildAlerts({ today, cohort, kakaoDates, adDays: raw.ads, unpaid: unpaid ?? 0, diff: con?.diff ?? null });
+  const alerts = buildAlerts({
+    today,
+    cohort,
+    kakaoDates,
+    adDays: raw.ads,
+    unpaid: unpaid ?? 0,
+    diff: con?.diff ?? null,
+    activeUntil: cohort.class_start ? settleDate(cohort.class_start) : undefined, // 최종 집계일까지 경고 유지
+  });
 
   const lastOf = (ds: string[]) => ds.filter((d) => d <= today && (!cohort.pre_open || d >= cohort.pre_open)).sort().pop() ?? null;
   const status: BoardStatus = {
     lastKakao: lastOf(kakaoDates),
-    lastAd: lastOf(raw.ads.filter((a) => (a.views ?? 0) > 1000).map((a) => a.day)),
+    lastAd: lastOf(raw.ads.filter((a) => (a.views ?? 0) >= AD_DAY_MIN_VIEWS).map((a) => a.day)),
     lastCommunity: lastOf((raw.ig ?? []).filter((m) => m.media_type === "IMAGE" || m.media_type === "CAROUSEL_ALBUM").map((m) => m.post_date)),
     unpaid: unpaid ?? 0,
   };
