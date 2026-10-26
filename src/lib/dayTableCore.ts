@@ -130,9 +130,10 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
     // 계획(취소 제외) — 계획이 있는 기수만 해당, 없으면 표가 그대로
     const cohortPlans = (raw.plans ?? []).filter((p) => p.cohort_id === id && p.status !== "canceled");
     const planEnd = (p: (typeof cohortPlans)[number]) => (p.kind === "ad" && p.end_date && p.end_date > p.plan_date ? p.end_date : p.plan_date);
-    // 표 끝 = 최종 집계일(클래스 시작 후 첫 일요일). 클래스 시작일이 없으면 모집 종료일·오늘. 계획이 그 뒤까지 있으면 마지막 계획 날까지
+    // 표 끝 = 최종 집계일(클래스 시작 후 첫 일요일). 클래스 시작일이 없으면 모집 종료일·오늘.
+    // 클래스 시작일이 없는(일정 미입력) 기수만 마지막 계획 날까지 늘림 — 최종 집계일이 있는 기수는 표 길이·예상 최종이 계획 때문에 바뀌지 않게
     let end = c.class_start ? settleDate(c.class_start) : c.ended_at ?? (today >= day1 ? today : day1);
-    for (const p of cohortPlans) if (planEnd(p) > end) end = planEnd(p);
+    if (!c.class_start) for (const p of cohortPlans) if (planEnd(p) > end) end = planEnd(p);
     const lastDay = Math.max(1, diffDays(day1, end) + 1);
 
     // 날짜별 순등록
