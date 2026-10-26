@@ -36,6 +36,41 @@ export function compareRows(table: DayTableData): CompareRow[] {
   return rows;
 }
 
+// ── 구간 순 보기: 같은 구간의 n일차끼리 한 줄로 맞추고, 구간 끝마다 "구간 합계" 줄
+// 구간 길이가 기수마다 달라 짧은 기수 칸은 비움(null). 평균 누적·차이는 값 있는 비교 기수만.
+export const PHASE_ORDER = ["사전등록", "1차EB", "대기1", "2차EB", "대기2", "정규", "추가", "클래스 후"] as const;
+export type PhaseSum = { sum: number; days: number; elapsed: number; perDay: number | null };
+export type PhaseViewRow =
+  | { kind: "day"; phase: string; n: number; cells: (DayCell | null)[]; avg: number | null; diff: number | null }
+  | { kind: "sum"; phase: string; sums: (PhaseSum | null)[]; avgPerDay: number | null; diffPerDay: number | null };
+
+export function phaseView(table: DayTableData): PhaseViewRow[] {
+  const rows: PhaseViewRow[] = [];
+  for (const phase of PHASE_ORDER) {
+    const byCol = table.columns.map((c) => c.cells.filter((x) => x.phase === phase));
+    const len = Math.max(0, ...byCol.map((l) => l.length));
+    if (!len) continue;
+    for (let n = 1; n <= len; n++) {
+      const cells = byCol.map((l) => l[n - 1] ?? null);
+      const others = cells.slice(1).map((c) => c?.cum).filter((v): v is number => v !== null && v !== undefined);
+      const avg = others.length ? round1(others.reduce((s, v) => s + v, 0) / others.length) : null;
+      const focus = cells[0]?.cum ?? null;
+      rows.push({ kind: "day", phase, n, cells, avg, diff: focus !== null && avg !== null ? round1(focus - avg) : null });
+    }
+    const sums: (PhaseSum | null)[] = byCol.map((l) => {
+      if (!l.length) return null;
+      const known = l.filter((x) => x.net !== null);
+      const sum = known.reduce((s, x) => s + (x.net ?? 0), 0);
+      return { sum, days: l.length, elapsed: known.length, perDay: known.length ? round1(sum / known.length) : null };
+    });
+    const otherPer = sums.slice(1).map((s) => s?.perDay).filter((v): v is number => v !== null && v !== undefined);
+    const avgPerDay = otherPer.length ? round1(otherPer.reduce((s, v) => s + v, 0) / otherPer.length) : null;
+    const focusPer = sums[0]?.perDay ?? null;
+    rows.push({ kind: "sum", phase, sums, avgPerDay, diffPerDay: focusPer !== null && avgPerDay !== null ? round1(focusPer - avgPerDay) : null });
+  }
+  return rows;
+}
+
 // ── 결론 한 줄: 현재 · 같은 Day 평균 대비 · 예상 최종
 // 예상 최종 = 현재 + 비교 기수들이 "오늘과 같은 D-N → 최종 집계일(표 마지막 날)" 사이에 늘어난 인원의 평균
 // (기준 기수가 이미 집계일을 지났으면 현재값 그대로)
