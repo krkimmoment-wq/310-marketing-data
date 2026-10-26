@@ -5,7 +5,7 @@ import { getDayComparison } from "@/lib/comparison";
 import { getLatestCohortName, resolveCohortPair } from "@/lib/cohorts";
 import { getDataHealth } from "@/lib/dataHealth";
 import { getBoard } from "@/lib/board";
-import { bandOf } from "@/lib/dayTableCore";
+import { bandOf, settleDate } from "@/lib/dayTableCore";
 import DataHealthCard from "@/components/DataHealthCard";
 import CountUp from "@/components/CountUp";
 import AiBriefing from "@/components/AiBriefing";
@@ -28,6 +28,7 @@ function nextMilestone(c: { [k: string]: string | null }, today: string) {
   const list: [string | null, string][] = [
     [c.eb1_open, "1차EB 오픈"], [c.eb1_close, "1차EB 마감"], [c.eb2_open, "2차EB 오픈"], [c.eb2_close, "2차EB 마감"],
     [c.reg_open, "정규 오픈"], [c.reg_close, "정규 마감"], [c.class_start, "클래스 시작"],
+    [c.class_start ? settleDate(c.class_start) : null, "최종 집계"],
   ];
   for (const [d, label] of list) {
     if (!d || d < today) continue;
@@ -52,6 +53,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const todayDate = new Date(today + "T00:00:00Z");
   const dn = c.class_start ? daysAgo(today, c.class_start) : null;
   const inRecruit = !!c.pre_open && c.pre_open <= today && (!c.class_start || today < c.class_start);
+  const settling = !!c.class_start && c.class_start <= today && today <= settleDate(c.class_start); // 클래스 시작 ~ 최종 집계일
   const lastAgo = (d: string | null) => (d ? `${md(d)} · ${daysAgo(d, today) === 0 ? "오늘" : `${daysAgo(d, today)}일 전`}` : "없음");
 
   return (
@@ -61,7 +63,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <h1 className="text-2xl font-black tracking-tight">{c.name} 오늘 판단판</h1>
           <span className="text-[13px] text-gray-600">
             {md(today)}({WD[todayDate.getUTCDay()]}) · Day {con?.day ?? "—"}
-            {dn !== null && dn >= 0 ? ` · 클래스 D-${dn}` : ""} · {inRecruit ? <PhaseBadge phase={bandOf(c, today)} /> : "모집 종료"}
+            {dn !== null && dn >= 0 ? ` · 클래스 D-${dn}` : ""} · {inRecruit ? <PhaseBadge phase={bandOf(c, today)} /> : settling ? <><PhaseBadge phase="클래스 후" /> 집계 중</> : "모집 종료"}
           </span>
         </header>
 
@@ -82,7 +84,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               {" "}· 예상 최종 약 <b>{con.projection}명</b> / 목표 {goal}
             </p>
             <span className="text-[12px] text-gray-300">
-              평균 = {board.compareNames.join("·")} 같은 Day 누적 평균 · 예상 최종 = 현재 + 비교 기수들의 &quot;오늘과 같은 D-N → 클래스 전날&quot; 증가분 평균
+              평균 = {board.compareNames.join("·")} 같은 Day 누적 평균 · 예상 최종 = 현재 + 비교 기수들의 &quot;오늘과 같은 D-N → 최종 집계일&quot; 증가분 평균
+              {con.incs.length > 0 && ` (${con.incs.map((x) => `${x.name} +${x.inc}`).join(" · ")})`}
             </span>
           </section>
         )}
@@ -113,7 +116,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             <span className="text-[12px] text-gray-600">일정</span>
             <span className={`text-[22px] font-black leading-tight ${ms?.today ? "text-red-700" : ""}`}>{ms ? `${ms.label} ${ms.when}` : "모집 종료"}</span>
             <span className="text-[12px] text-gray-600">
-              정규 {md(c.reg_open)}~{md(c.reg_close)} · 클래스 {md(c.class_start)}
+              정규 {md(c.reg_open)}~{md(c.reg_close)} · 클래스 {md(c.class_start)} · 최종 집계 {c.class_start ? md(settleDate(c.class_start)) : "—"}
             </span>
             <span className="text-[12px] text-gray-600">추가 모집 마감: {c.extra_close ? md(c.extra_close) : "미정"}</span>
           </div>

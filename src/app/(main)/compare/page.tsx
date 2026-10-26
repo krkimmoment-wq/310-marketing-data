@@ -12,10 +12,10 @@ export const dynamic = "force-dynamic";
 const CH = [
   { key: "ig", label: "인스타", color: "#e1306c" },
   { key: "yt", label: "유튜브", color: "#ff5e57" },
-  { key: "kk", label: "카카오", color: "#ffd23f" },
+  { key: "kk", label: "카카오", color: "#a16207" },
   { key: "direct", label: "다이렉트", color: "#4d8cff" },
   { key: "tt", label: "틱톡", color: "#22d3ee" },
-  { key: "other", label: "기타", color: "#a0a4b8" },
+  { key: "other", label: "기타", color: "#6b7280" },
 ] as const;
 
 const BITLY_ORDER = ["사전등록", "1차 얼리버드", "얼리버드 간 대기", "2차 얼리버드", "정규모집 전 대기", "정규모집", "추가등록"];

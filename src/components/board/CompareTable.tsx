@@ -25,7 +25,7 @@ export default function CompareTable({ data }: { data: DayTableData }) {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-gray-700">
         <span className="font-bold">구간 색</span>
-        {(["1차EB", "2차EB", "정규", "추가"] as const).map((p) => (
+        {(["1차EB", "2차EB", "정규", "추가", "클래스 후"] as const).map((p) => (
           <span key={p} className="inline-flex items-center gap-1">
             <span className="h-3 w-3 rounded-sm" style={{ background: PHASE_STYLE[p].strip }} />
             {p}
@@ -133,7 +133,7 @@ export default function CompareTable({ data }: { data: DayTableData }) {
         </aside>
       </div>
       <p className="text-[12px] leading-relaxed text-gray-600">
-        Day 1 = 각 기수 사전등록 오픈일(등록 시작) · 누적 = 공식 인원 기준(결제일 기준 실등록 + 다른 기수에서 옮겨온 인원을 Day 1 이전에 포함) · 평균 = 비교 기수({columns.slice(1).map((c) => c.name).join("·")})의 같은 Day 누적 평균 · 광고 칩 = 유튜브 광고 노출(구글 애즈+스튜디오 프로모션, 금액 아님)
+        Day 1 = 각 기수 사전등록 오픈일(등록 시작) · 표 끝 = 최종 집계일(클래스 시작 후 첫 일요일) · 누적 = 공식 인원 기준(결제일 기준 실등록 + 다른 기수에서 옮겨온 인원을 Day 1 이전에 포함) · 평균 = 비교 기수({columns.slice(1).map((c) => c.name).join("·")})의 같은 Day 누적 평균 · 광고 칩 = 유튜브 광고 노출(구글 애즈+스튜디오 프로모션, 금액 아님)
       </p>
     </div>
   );

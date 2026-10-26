@@ -37,8 +37,18 @@ export function compareRows(table: DayTableData): CompareRow[] {
 }
 
 // ── 결론 한 줄: 현재 · 같은 Day 평균 대비 · 예상 최종
-// 예상 최종 = 현재 + 비교 기수들이 "오늘과 같은 D-N → 클래스 전날(D-1)" 사이에 늘어난 인원의 평균
-export type Conclusion = { cohort: string; day: number; dn: number | null; current: number; avg: number | null; diff: number | null; projection: number };
+// 예상 최종 = 현재 + 비교 기수들이 "오늘과 같은 D-N → 최종 집계일(표 마지막 날)" 사이에 늘어난 인원의 평균
+// (기준 기수가 이미 집계일을 지났으면 현재값 그대로)
+export type Conclusion = {
+  cohort: string;
+  day: number;
+  dn: number | null;
+  current: number;
+  avg: number | null;
+  diff: number | null;
+  projection: number;
+  incs: { name: string; inc: number }[]; // 예상 최종 근거: 비교 기수별 "같은 D-N → 집계일" 증가분
+};
 
 export function conclusion(table: DayTableData, today: string): Conclusion | null {
   const focus = table.columns[0];
@@ -48,16 +58,17 @@ export function conclusion(table: DayTableData, today: string): Conclusion | nul
   if (!last || last.cum === null) return null;
   const row = compareRows(table)[last.day - 1];
   let projection = last.cum;
-  if (last.dn !== null && last.dn >= 1) {
-    const incs: number[] = [];
+  const focusEnd = focus.cells[focus.lastDay - 1]?.date;
+  const incs: { name: string; inc: number }[] = [];
+  if (last.dn !== null && focusEnd && today <= focusEnd) {
     for (const col of table.columns.slice(1)) {
       const at = col.cells.find((c) => c.dn === last.dn)?.cum;
-      const eve = col.cells.find((c) => c.dn === 1)?.cum;
-      if (at !== null && at !== undefined && eve !== null && eve !== undefined) incs.push(eve - at);
+      const end = col.cells[col.lastDay - 1]?.cum;
+      if (at !== null && at !== undefined && end !== null && end !== undefined) incs.push({ name: col.name, inc: end - at });
     }
-    if (incs.length) projection = Math.round(last.cum + incs.reduce((s, v) => s + v, 0) / incs.length);
+    if (incs.length) projection = Math.round(last.cum + incs.reduce((s, v) => s + v.inc, 0) / incs.length);
   }
-  return { cohort: focus.name, day: last.day, dn: last.dn, current: last.cum, avg: row?.avg ?? null, diff: row?.diff ?? null, projection };
+  return { cohort: focus.name, day: last.day, dn: last.dn, current: last.cum, avg: row?.avg ?? null, diff: row?.diff ?? null, projection, incs };
 }
 
 // ── 구간 요약: 결제일 기준 구간별 총등록·환불·미입금·이전·실등록·비틀리·광고비 + 같은 구간 다른 기수 실등록

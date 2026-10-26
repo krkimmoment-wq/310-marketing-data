@@ -2,7 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCohortsChrono, kstToday, type CohortRow } from "@/lib/cohorts";
 import { cohortDailyRows } from "@/lib/daily";
-import { buildDayTable, rankVideos, type CohortFull, type DayRaw, type DayTableData, type VideoRank } from "@/lib/dayTableCore";
+import { buildDayTable, rankVideos, settleDate, type CohortFull, type DayRaw, type DayTableData, type VideoRank } from "@/lib/dayTableCore";
 
 const COHORT_COLS = "id,name,pre_open,eb1_open,eb1_close,eb2_open,eb2_close,reg_open,reg_close,extra_close,ended_at,class_start";
 
@@ -27,7 +27,7 @@ export async function getDayTable(
   const { data: cohortsRaw } = await sb.from("cohorts").select(COHORT_COLS).in("id", ids);
   const cohorts = (cohortsRaw ?? []) as CohortFull[];
   const startDates = cohorts.map((c) => c.pre_open).filter((d): d is string => !!d).sort();
-  const endDates = cohorts.map((c) => c.class_start ?? c.ended_at ?? today).sort();
+  const endDates = cohorts.map((c) => (c.class_start ? settleDate(c.class_start) : c.ended_at ?? today)).sort(); // 표 끝 = 최종 집계일
   const minDate = startDates[0] ?? today;
   const maxDate = endDates[endDates.length - 1] ?? today;
 

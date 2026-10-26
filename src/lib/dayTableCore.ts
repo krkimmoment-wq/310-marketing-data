@@ -66,6 +66,15 @@ const addDays = (d: string, n: number) => new Date(toMs(d) + n * DAY_MS).toISOSt
 const diffDays = (a: string, b: string) => Math.round((toMs(b) - toMs(a)) / DAY_MS);
 const fmt = (n: number | null | undefined) => (n ?? 0).toLocaleString("ko-KR");
 
+// 광고 칩 기준 = 판단판 경고와 같은 "유튜브 광고 조회 1,000회 이상"
+export const AD_DAY_MIN_VIEWS = 1000;
+
+// 최종 집계일 = 클래스 시작일 '이후' 첫 일요일 (10/8 미팅 "클리어스텝 1주차 일요일까지"). 시작일이 일요일이면 다음 일요일
+export function settleDate(classStart: string): string {
+  const dow = new Date(toMs(classStart)).getUTCDay(); // 일0 … 토6
+  return addDays(classStart, (7 - dow) % 7 || 7);
+}
+
 // 결제일이 기수 일정상 어느 구간인지 (경계 inclusive, 등록관리 구간명과 동일)
 export function bandOf(c: CohortFull, d: string): string {
   if (c.eb1_open && d < c.eb1_open) return "사전등록";
@@ -97,6 +106,7 @@ export function firstWeekViews(raw: DayRaw): Map<string, { views: number; comple
 export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): DayTableData {
   const adsByDay = new Map<string, number>();
   for (const a of raw.ads) if ((a.views ?? 0) > 0) adsByDay.set(a.day, (adsByDay.get(a.day) ?? 0) + (a.views ?? 0));
+  const isSpecialText = (s: string | null | undefined) => (s ?? "").includes("특강");
   const vidsByDay = new Map<string, DayRaw["videos"]>();
   for (const v of raw.videos) vidsByDay.set(v.pub_date, [...(vidsByDay.get(v.pub_date) ?? []), v]);
   const week1 = firstWeekViews(raw);
@@ -111,7 +121,8 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
     const c = raw.cohorts.find((x) => x.id === id);
     if (!c || !c.pre_open) continue;
     const day1 = c.pre_open;
-    const end = c.class_start ?? c.ended_at ?? (today >= day1 ? today : day1);
+    // 표 끝 = 최종 집계일(클래스 시작 후 첫 일요일). 클래스 시작일이 없으면 모집 종료일·오늘
+    const end = c.class_start ? settleDate(c.class_start) : c.ended_at ?? (today >= day1 ? today : day1);
     const lastDay = Math.max(1, diffDays(day1, end) + 1);
 
     // 날짜별 순등록
@@ -130,6 +141,7 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
       [c.eb2_close ? addDays(c.eb2_close, 1) : null, "대기2"],
       [c.reg_open, "정규"],
       [c.reg_close ? addDays(c.reg_close, 1) : null, "추가"],
+      [c.class_start, "클래스 후"],
     ];
     for (const [d, lab] of startDefs) if (d) starts.set(d, lab);
 
@@ -150,7 +162,7 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
 
       const actions: DayAction[] = [];
       const adv = adsByDay.get(date);
-      if (adv) actions.push({ kind: "pool", text: `유튜브 유료 노출(프로모션·광고) 조회 ${fmt(adv)}` });
+      if (adv && adv >= AD_DAY_MIN_VIEWS) actions.push({ kind: "pool", text: `유튜브 유료 노출(프로모션·광고) 조회 ${fmt(adv)}` });
       for (const v of vidsByDay.get(date) ?? []) {
         const w = week1.get(v.video_id);
         const viewTxt = w ? `첫 7일 조회 ${fmt(w.views)}${w.complete ? "" : " (집계 중)"}` : `현재 조회 ${fmt(v.views)}`;
@@ -163,11 +175,12 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
           text: `카톡 · ${k.title ?? ""} (발송 ${fmt(k.sent_count)} · 클릭 ${fmt(k.click_count)})`,
         });
       }
-      for (const m of igByDay.get(date) ?? [])
-        actions.push({
-          kind: "community",
-          text: `인스타 커뮤니티 · ${m.caption ? m.caption.slice(0, 40) : "게시물"} (좋아요 ${fmt(m.like_count)} · 댓글 ${fmt(m.comments_count)})`,
-        });
+      for (const m of igByDay.get(date) ?? []) {
+        const text = `인스타 커뮤니티 · ${m.caption ? m.caption.slice(0, 40) : "게시물"} (좋아요 ${fmt(m.like_count)} · 댓글 ${fmt(m.comments_count)})`;
+        actions.push({ kind: "community", text });
+        // 캡션에 "특강"이 있으면 특강 칩으로도 표시 (커뮤 칩은 그대로)
+        if (isSpecialText(m.caption)) actions.push({ kind: "special", text: `특강 · ${text}` });
+      }
       for (const x of cohortContent.filter((x) => x.pub_date === date)) {
         const kind: ActionKind =
           x.category === "특강" ? "special"
@@ -184,7 +197,7 @@ export function buildDayTable(raw: DayRaw, cohortIds: number[], today: string): 
         date,
         net,
         cum: future ? null : cum,
-        phase: bandOf(c, date),
+        phase: c.class_start && date >= c.class_start ? "클래스 후" : bandOf(c, date),
         phaseStart: starts.get(date) ?? null,
         clicks: future ? null : clicksByDay.get(date) ?? null,
         dn: c.class_start ? diffDays(date, c.class_start) : null,

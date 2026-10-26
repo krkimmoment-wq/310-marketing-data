@@ -11,6 +11,7 @@ export const PHASE_STYLE: Record<string, { strip: string; bg: string; fg: string
   대기2: { strip: "#E5E7EB", bg: "#F3F4F6", fg: "#374151" },
   정규: { strip: "#FCD34D", bg: "#FEF3C7", fg: "#92400E" },
   추가: { strip: "#C4B5FD", bg: "#EDE9FE", fg: "#5B21B6" },
+  "클래스 후": { strip: "#9CA3AF", bg: "#E5E7EB", fg: "#374151" }, // 클래스 시작 ~ 최종 집계일
 };
 const phaseStyle = (p: string) => PHASE_STYLE[p] ?? PHASE_STYLE["대기1"];
 
