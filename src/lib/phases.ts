@@ -28,7 +28,7 @@ export async function getPhaseData(selected?: string): Promise<PhaseData | null>
   if (!cohort) return null;
 
   const [regs, clicks, ads, arrivals, others] = await Promise.all([
-    sb.from("registrations").select("reg_date,payment,is_refund,is_transfer").eq("cohort_id", cohort.id),
+    sb.from("registrations").select("reg_date,payment,is_refund,is_transfer,transfer_to_cohort_id").eq("cohort_id", cohort.id),
     sb.from("bitly_daily").select("click_date,clicks").gte("click_date", cohort.pre_open ?? today).range(0, 9999),
     sb.from("ad_spend").select("period_start,cost").eq("cohort_id", cohort.id),
     sb.from("registrations").select("id", { count: "exact", head: true }).eq("transfer_to_cohort_id", cohort.id).eq("payment", "입금완료").eq("is_refund", false),

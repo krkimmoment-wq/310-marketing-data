@@ -109,7 +109,13 @@ export function conclusion(table: DayTableData, today: string): Conclusion | nul
 // ── 구간 요약: 결제일 기준 구간별 총등록·환불·미입금·이전·실등록·비틀리·광고비 + 같은 구간 다른 기수 실등록
 export const PHASES = ["Day1이전", "사전등록", "1차EB", "대기1", "2차EB", "대기2", "정규", "추가"] as const;
 
-export type RegLite = { reg_date: string | null; payment: string | null; is_refund: boolean | null; is_transfer: boolean | null };
+export type RegLite = {
+  reg_date: string | null;
+  payment: string | null;
+  is_refund: boolean | null;
+  is_transfer: boolean | null;
+  transfer_to_cohort_id?: number | null;
+};
 export type PhaseRow = {
   phase: string;
   from: string | null;
@@ -156,6 +162,8 @@ export function phaseSummary(
   );
   for (const r of regs) {
     if (!r.reg_date) continue;
+    // 이 기수 안의 '다른 기수에서 들어옴' 행(이전 표시 + 도착 기수 = 이 기수)은 구간별 줄에서 빼고 합계의 '들어옴'으로만 센다
+    if (r.is_transfer && r.transfer_to_cohort_id === c.id) continue;
     const row = rows.get(phaseOf(c, r.reg_date))!;
     row.total++;
     if (r.is_refund) row.refund++;
