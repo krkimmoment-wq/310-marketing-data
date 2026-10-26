@@ -136,6 +136,46 @@ export function adOnDates(items: Pick<PlanItem, "kind" | "plan_date" | "end_date
   return out;
 }
 
+// ── 어느 기수 계획판을 보여줄지: 왼쪽 기수 선택(이름) → 없거나 모르는 이름이면 가장 최근 등록 기수
+// (가장 최근 = nav.latestCohortName과 같은 규칙: 날짜 없는 새 기수가 가장 최근, 나머지는 사전등록 오픈일 늦은 순, 같으면 id 큰 쪽)
+export function resolvePlanCohort<T extends { id: number; name: string; pre_open: string | null; class_start?: string | null }>(
+  list: T[],
+  name?: string
+): T | undefined {
+  const picked = name ? list.find((c) => c.name === name) : undefined;
+  if (picked) return picked;
+  const key = (c: T) => c.pre_open ?? c.class_start ?? "";
+  return list.slice().sort((a, b) => {
+    const ka = key(a), kb = key(b);
+    if ((ka === "") !== (kb === "")) return ka === "" ? -1 : 1;
+    return kb.localeCompare(ka) || b.id - a.id;
+  })[0];
+}
+
+// 지난 기수 = 클래스가 이미 시작한 기수 (초안 버튼에 확인 창)
+export function isPastCohort(c: Pick<CohortFull, "class_start">, today: string): boolean {
+  return !!c.class_start && c.class_start <= today;
+}
+
+// 실제 기록 → 실선 칩 (카톡·광고 시작·특강·라이브·콘텐츠 기록). 계획 칩(점선)과 함께 표시
+export type ActualChip = { date: string; kind: PlanKind; label: string; title: string | null };
+export function actualChips(rec: {
+  kakao: { date: string; title: string | null }[];
+  ads: { date: string; platform: string; campaign: string | null }[];
+  content: { date: string; category: string | null; title: string | null }[];
+}): ActualChip[] {
+  const out: ActualChip[] = [
+    ...rec.kakao.map((k) => ({ date: k.date, kind: "kakao" as PlanKind, label: "카톡", title: k.title })),
+    ...rec.ads.map((a) => ({ date: a.date, kind: "ad" as PlanKind, label: `광고 시작 · ${a.platform === "instagram" ? "인스타" : "유튜브"}`, title: a.campaign })),
+    ...rec.content.map((c) =>
+      c.category === "특강" ? { date: c.date, kind: "lecture" as PlanKind, label: "특강", title: c.title }
+      : c.category === "라이브" ? { date: c.date, kind: "live" as PlanKind, label: "라이브", title: c.title }
+      : { date: c.date, kind: "etc" as PlanKind, label: `기록 · ${c.category ?? "콘텐츠"}`, title: c.title }
+    ),
+  ];
+  return out.sort((a, b) => a.date.localeCompare(b.date)); // 같은 날은 넣은 순서 유지
+}
+
 // ── 규칙으로 초안 만들기
 const NEED: [keyof CohortFull, string][] = [
   ["pre_open", "사전등록 오픈"], ["eb1_open", "1차EB 오픈"], ["eb1_close", "1차EB 마감"], ["eb2_open", "2차EB 오픈"],

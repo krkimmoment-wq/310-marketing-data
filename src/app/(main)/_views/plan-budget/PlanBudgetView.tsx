@@ -4,8 +4,8 @@ import BudgetForm from "./BudgetForm";
 
 const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 
-export default async function PlanBudgetPage() {
-  const data = await getBudgetView();
+export default async function PlanBudgetPage({ cohortName }: { cohortName?: string }) {
+  const data = await getBudgetView(cohortName);
   if (!data) return <div className="min-h-screen bg-[#F6F6F3] p-8 text-gray-700">계획할 기수가 없습니다.</div>;
   const { cohort, saved, past } = data;
   const keys = ["eb1", "eb2", "regular", "other"] as const;
@@ -14,7 +14,7 @@ export default async function PlanBudgetPage() {
     <div className="min-h-screen bg-[#F6F6F3] px-4 pb-10 pt-2 text-gray-800 md:px-8">
       <div className="flex flex-wrap items-start gap-4">
         <div className="flex min-w-0 flex-[1_1_380px] flex-col">
-          <BudgetForm cohortId={cohort.id} cohortName={cohort.name} saved={saved} />
+          <BudgetForm key={cohort.id} cohortId={cohort.id} cohortName={cohort.name} saved={saved} />
         </div>
         <section aria-label="지난 기수 같은 구간" className="flex min-w-0 flex-[2_1_560px] flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4">
           <h2 className="text-[16px] font-black">지난 기수 같은 구간 — 광고비 · 등록 수</h2>

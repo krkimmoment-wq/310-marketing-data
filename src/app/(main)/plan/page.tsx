@@ -1,9 +1,11 @@
 // ③ (가장 최근 기수) 계획 — 탭: 계획 캘린더 / 광고 예산 / 기록 캘린더
+// 세 탭 모두 왼쪽 기수 선택(?cohort=)을 따름. 선택이 없으면 가장 최근 등록 기수. 화면 제목 = 고른 기수, 왼쪽 메뉴 이름 = 가장 최근 기수
 import TabShell from "@/components/TabShell";
-import { MENUS, resolveTab, latestCohortName } from "@/lib/nav";
+import { MENUS, resolveTab } from "@/lib/nav";
+import { resolvePlanCohort } from "@/lib/planCore";
 import { createClient } from "@/lib/supabase/server";
-import PlanBoardPage from "../_views/plan-board/page";
-import PlanBudgetPage from "../_views/plan-budget/page";
+import PlanBoardPage from "../_views/plan-board/PlanBoardView";
+import PlanBudgetPage from "../_views/plan-budget/PlanBudgetView";
 import CalendarPage from "../_views/calendar/page";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +19,17 @@ export default async function PlanMenu({ searchParams }: { searchParams: SP }) {
   const cohort = typeof sp.cohort === "string" ? sp.cohort : undefined;
   const sb = await createClient();
   const { data } = await sb.from("cohorts").select("id,name,pre_open,class_start");
-  const latestName = latestCohortName(data ?? []);
+  const selected = resolvePlanCohort(data ?? [], cohort)?.name;
   return (
     <>
-      <TabShell menu={menu} active={tab} cohort={cohort} latestName={latestName} />
-      {tab === "plan" ? <PlanBoardPage /> : tab === "budget" ? <PlanBudgetPage /> : <CalendarPage searchParams={searchParams as never} />}
+      <TabShell menu={menu} active={tab} cohort={cohort} latestName={selected} />
+      {tab === "plan" ? (
+        <PlanBoardPage cohortName={selected} />
+      ) : tab === "budget" ? (
+        <PlanBudgetPage cohortName={selected} />
+      ) : (
+        <CalendarPage searchParams={Promise.resolve({ cohort: selected })} />
+      )}
     </>
   );
 }

@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   AD_CHANNEL_LABEL, KIND_META, PLAN_PHASE_BG, STATUS_LABEL,
   addDays, adOnDates, checkExecution, dayNumber, diffDays, draftDiff, generateDraft, monthWeeks, phaseStartLabel, planMonths, planPhase,
-  type AdChannel, type DraftItem, type ExecRecords, type ExecStatus, type PlanItem, type PlanKind, type PlanStatus,
+  type ActualChip, type AdChannel, type DraftItem, type ExecRecords, type ExecStatus, type PlanItem, type PlanKind, type PlanStatus,
 } from "@/lib/planCore";
 import type { PlanCohort } from "@/lib/plan";
 
@@ -53,7 +53,7 @@ function DraggableChip({ item, exec, selected, onClick }: { item: PlanItem; exec
       style={{
         background: k.bg,
         color: k.fg,
-        border: `1px ${item.optional ? "dashed" : "solid"} ${k.border}`,
+        border: `1.5px ${item.optional ? "dotted" : "dashed"} ${k.border}`, // 계획 = 점선 (선택 항목 = 점 테두리)
         textDecoration: item.status === "canceled" ? "line-through" : undefined,
         opacity: item.status === "canceled" ? 0.55 : undefined,
       }}
@@ -65,13 +65,29 @@ function DraggableChip({ item, exec, selected, onClick }: { item: PlanItem; exec
   );
 }
 
+// 실제 기록 칩 (실선·채움) — 카톡·광고 시작·특강·라이브·콘텐츠 기록
+function RecordChip({ chip }: { chip: ActualChip }) {
+  const k = KIND_META[chip.kind];
+  return (
+    <span
+      title={`실제 기록 · ${chip.label}${chip.title ? ` · ${chip.title}` : ""}`}
+      className="flex w-full min-h-5 items-center gap-1 rounded px-1 py-0.5 text-[10.5px] leading-tight"
+      style={{ background: k.bg, color: k.fg, border: `1.5px solid ${k.border}` }}
+    >
+      <span className="font-bold shrink-0">{chip.label}</span>
+      {chip.title && <span className="truncate">{chip.title}</span>}
+    </span>
+  );
+}
+
 function DayCell({
-  date, cohort, adOn, items, execOf, selectedId, onPick, onAdd, onDropItem,
+  date, cohort, adOn, items, actual, execOf, selectedId, onPick, onAdd, onDropItem,
 }: {
   date: string | null;
   cohort: PlanCohort;
   adOn: boolean;
   items: PlanItem[];
+  actual: ActualChip[];
   execOf: (it: PlanItem) => ExecStatus;
   selectedId: number | null;
   onPick: (it: PlanItem) => void;
@@ -122,6 +138,9 @@ function DayCell({
       {startLabel && <span className="w-fit rounded bg-white/80 px-1 text-[10px] font-bold text-gray-800">{startLabel}</span>}
       {adOn && <span className="rounded-sm bg-red-600 px-1 text-[10px] font-bold text-white">광고 ON</span>}
       <div className="flex flex-col gap-0.5">
+        {actual.map((c, i) => (
+          <RecordChip key={`r${i}`} chip={c} />
+        ))}
         {items.map((it) => (
           <DraggableChip key={it.id} item={it} exec={execOf(it)} selected={selectedId === it.id} onClick={() => onPick(it)} />
         ))}
@@ -130,7 +149,17 @@ function DayCell({
   );
 }
 
-export default function PlanBoard({ cohort, items, records, today }: { cohort: PlanCohort; items: PlanItem[]; records: ExecRecords; today: string }) {
+export default function PlanBoard({
+  cohort, items, records, actual, isPast, today,
+}: {
+  cohort: PlanCohort;
+  items: PlanItem[];
+  records: ExecRecords;
+  actual: ActualChip[];
+  isPast: boolean;
+  today: string;
+}) {
+  const [showActual, setShowActual] = useState(true);
   const router = useRouter();
   const [list, setList] = useState<PlanItem[]>(items);
   // 저장 후 새로 받은 목록으로 맞춤 (렌더 중 이전 값과 비교하는 방식)
@@ -253,7 +282,11 @@ export default function PlanBoard({ cohort, items, records, today }: { cohort: P
             <button
               type="button"
               disabled={!draft.ok || busy}
-              onClick={() => draft.ok && setPreview(draftDiff(list, draft.items))}
+              onClick={() => {
+                if (!draft.ok) return;
+                if (isPast && !window.confirm(`${cohort.name}은 지난 기수입니다. 그래도 규칙 초안을 만들까요?`)) return;
+                setPreview(draftDiff(list, draft.items));
+              }}
               className="min-h-10 rounded-lg bg-[#1E3A8A] px-4 text-sm font-bold text-white disabled:bg-gray-300 disabled:text-gray-600"
             >
               규칙으로 초안 만들기
@@ -286,6 +319,14 @@ export default function PlanBoard({ cohort, items, records, today }: { cohort: P
               </button>
             );
           })}
+          <button
+            type="button"
+            aria-pressed={showActual}
+            onClick={() => setShowActual(!showActual)}
+            className={`min-h-8 rounded-full border px-3 py-1 font-bold ${showActual ? "border-gray-800 bg-gray-800 text-white" : "border-gray-400 bg-white text-gray-600"}`}
+          >
+            실제 기록 {actual.length}건
+          </button>
           <span className="text-[12px] text-gray-600">· 숏폼 1일 1개는 기본값이라 표시하지 않음</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-gray-700">
@@ -296,7 +337,7 @@ export default function PlanBoard({ cohort, items, records, today }: { cohort: P
               {p}
             </span>
           ))}
-          <span>· 점선 테두리 = 선택 항목 · 칩 끝 표시: ✓ 완료 · … 2일 유예 · ! 누락 · ? 사람 확인</span>
+          <span>· 점선 칩 = 계획 (점 테두리 = 선택 항목) · 실선 칩 = 실제 기록 · 칩 끝 표시: ✓ 완료 · … 2일 유예 · ! 누락 · ? 사람 확인</span>
         </div>
         {msg && <p role="status" className="text-[13px] font-bold text-blue-800">{msg}</p>}
       </div>
@@ -337,6 +378,7 @@ export default function PlanBoard({ cohort, items, records, today }: { cohort: P
                 cohort={cohort}
                 adOn={!!date && adOn.has(date)}
                 items={date ? visible.filter((it) => it.plan_date === date) : []}
+                actual={date && showActual ? actual.filter((c) => c.date === date && !hidden.includes(c.kind)) : []}
                 execOf={execOf}
                 selectedId={form?.id ?? null}
                 onPick={(it) => setForm({ ...it })}

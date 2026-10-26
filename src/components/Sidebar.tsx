@@ -20,8 +20,11 @@ export default function Sidebar({
   const path = usePathname();
   const router = useRouter();
   const sp = useSearchParams();
-  const cohort = sp.get("cohort") ?? defaultCohort ?? cohorts[0]?.name ?? "";
-  const q = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
+  // 메뉴 링크에는 직접 고른 기수만 붙임 (안 골랐으면 각 화면의 기본 기수: ③ 계획 = 가장 최근 등록 기수, 나머지 = 현재 기수)
+  const picked = sp.get("cohort");
+  const q = picked ? `?cohort=${encodeURIComponent(picked)}` : "";
+  // 기수 선택 칸에 보이는 기본값도 화면 기준에 맞춤
+  const shownDefault = path === "/plan" ? latestName ?? defaultCohort : defaultCohort;
   const [open, setOpen] = useState(false); // 모바일 드로어
 
   async function logout() {
@@ -54,7 +57,7 @@ export default function Sidebar({
         <div className="text-xs text-gray-600 mt-0.5">모멘트핏 운영</div>
       </div>
       <div className="pt-3">
-        <CohortSelector cohorts={cohorts} defaultCohort={defaultCohort} />
+        <CohortSelector cohorts={cohorts} defaultCohort={shownDefault} />
       </div>
       <nav aria-label="메뉴" className="flex-1 p-3 flex flex-col gap-1">
         {MENUS.map((m) => {
