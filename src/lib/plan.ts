@@ -37,16 +37,18 @@ export async function getPlanBoard(name?: string): Promise<{
   const [items, kakao, ads, content, videos] = await Promise.all([
     sb.from("plan_items").select(PLAN_COLS).eq("cohort_id", cohort.id).order("plan_date").range(0, 4999),
     sb.from("kakao_message").select("sent_date,title").eq("cohort_id", cohort.id),
-    sb.from("ad_spend").select("period_start,platform,campaign").eq("cohort_id", cohort.id),
+    sb.from("ad_spend").select("period_start,platform,campaign,ad_type,period_end").eq("cohort_id", cohort.id),
     sb.from("content_log").select("pub_date,category,title").eq("cohort_id", cohort.id),
     sb.from("yt_video").select("pub_date,kind").gte("pub_date", addDays(from, -7)).lte("pub_date", to).range(0, 4999),
   ]);
   const kk = ((kakao.data ?? []) as { sent_date: string | null; title: string | null }[]).filter((k) => k.sent_date);
-  const aa = ((ads.data ?? []) as { period_start: string | null; platform: string; campaign: string | null }[]).filter((a) => a.period_start);
+  const aa = ((ads.data ?? []) as { period_start: string | null; platform: string; campaign: string | null; ad_type: string | null; period_end: string | null }[]).filter(
+    (a) => a.period_start
+  );
   const cc = ((content.data ?? []) as { pub_date: string | null; category: string | null; title: string | null }[]).filter((c) => c.pub_date);
   const records: ExecRecords = {
     kakao: kk.map((k) => k.sent_date as string),
-    ads: aa.map((a) => ({ date: a.period_start as string, platform: a.platform })),
+    ads: aa.map((a) => ({ date: a.period_start as string, platform: a.platform, ad_type: a.ad_type, period_end: a.period_end })),
     content: cc.map((c) => ({ date: c.pub_date as string, category: c.category })),
     videos: ((videos.data ?? []) as { pub_date: string; kind: string | null }[]).map((v) => ({ date: v.pub_date, kind: v.kind })),
   };

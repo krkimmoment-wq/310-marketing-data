@@ -264,17 +264,49 @@ export function draftDiff(existing: { rule_key: string | null }[], draft: DraftI
 }
 
 // ── 계획 대비 실행 확인
-export type ExecStatus = "예정" | "완료" | "완료(직접)" | "유예" | "누락" | "사람 확인" | "취소";
+export type ExecStatus = "예정" | "완료" | "완료(직접)" | "유예" | "누락" | "사람 확인" | "끄기 확인" | "취소";
+export type AdRecord = { date: string; platform: string; ad_type?: string | null; period_end?: string | null };
 export type ExecRecords = {
   kakao: string[]; // 그 기수 카톡 발송일
-  ads: { date: string; platform: string }[]; // 그 기수 광고비 시작일·매체
+  ads: AdRecord[]; // 그 기수 광고비 시작일·매체·종류·종료일 (종류·종료일은 2026-10-26 칸 추가, 옛 기록은 빈칸)
   content: { date: string; category: string | null }[]; // 그 기수 콘텐츠 기록
   videos: { date: string; kind: string | null }[]; // 유튜브 영상 발행일·종류 (숏폼/롱폼)
 };
 export const GRACE_DAYS = 2;
 
+// 계획 광고와 맞는 장부 기록: 시작일 ±1일 + (장부에 종류가 있으면 종류까지, 없으면 매체로) 같아야 함
+export function matchAd(it: Pick<PlanItem, "plan_date" | "ad_channel">, ads: AdRecord[]): AdRecord | undefined {
+  const want = it.ad_channel === "instagram" ? "instagram" : it.ad_channel ? "youtube" : null;
+  return ads.find(
+    (a) =>
+      Math.abs(diffDays(it.plan_date, a.date)) <= 1 &&
+      (a.ad_type && it.ad_channel ? a.ad_type === it.ad_channel : !want || a.platform === want)
+  );
+}
+
+// 실제 집행 기간 표시 (계획판 실행 확인 표)
+export function adActualPeriod(it: Pick<PlanItem, "plan_date" | "ad_channel">, rec: Pick<ExecRecords, "ads">): string | null {
+  const a = matchAd(it, rec.ads);
+  if (!a) return null;
+  const md = (x: string) => `${Number(x.slice(5, 7))}/${Number(x.slice(8, 10))}`;
+  if (a.period_end) return `실제 ${md(a.date)}~${md(a.period_end)}`;
+  return a.ad_type ? `실제 ${md(a.date)}~ (진행 중)` : `실제 ${md(a.date)}~ (종료일 확인 필요)`;
+}
+
+// 광고 장부 '종류' 선택지 (매체에 맞춰): 유튜브 → Google Ads·스튜디오 프로모션, 인스타 → 인스타
+export function adTypeOptions(platform: string): AdChannel[] {
+  return platform === "instagram" ? ["instagram"] : ["google_ads", "studio_promotion"];
+}
+
+// 광고 장부 목록 표시: 옛 기록(종류 빈칸) = 확인 필요, 새 기록 종료일 빈칸 = 진행 중
+export function adLedgerDisplay(adType: string | null, periodEnd: string | null): { type: string; end: string } {
+  const type = adType ? AD_CHANNEL_LABEL[adType as AdChannel] ?? adType : "확인 필요";
+  const end = periodEnd ?? (adType ? "진행 중" : "확인 필요");
+  return { type, end };
+}
+
 export function checkExecution(
-  it: Pick<PlanItem, "kind" | "plan_date" | "status" | "ad_channel">,
+  it: Pick<PlanItem, "kind" | "plan_date" | "status" | "ad_channel"> & { end_date?: string | null },
   rec: ExecRecords,
   today: string
 ): ExecStatus {
@@ -285,8 +317,10 @@ export function checkExecution(
   let human = false;
   if (it.kind === "kakao") matched = rec.kakao.includes(d);
   else if (it.kind === "ad") {
-    const want = it.ad_channel === "instagram" ? "instagram" : it.ad_channel ? "youtube" : null;
-    matched = rec.ads.some((a) => Math.abs(diffDays(d, a.date)) <= 1 && (!want || a.platform === want));
+    const a = matchAd(it, rec.ads);
+    matched = !!a;
+    // 계획한 끄는 날이 지났는데 장부(새 기록)의 종료일이 비어 있으면 = 아직 켜져 있을 수 있음
+    if (a && a.ad_type && !a.period_end && it.end_date && it.end_date < today) return "끄기 확인";
   } else if (it.kind === "lecture") matched = rec.content.some((x) => x.date === d && x.category === "특강");
   else if (it.kind === "live") matched = rec.content.some((x) => x.date === d && x.category === "라이브");
   else if (it.kind === "promo_short") human = rec.videos.some((v) => v.date === d && v.kind === "숏폼");

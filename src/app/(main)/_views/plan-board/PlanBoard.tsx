@@ -8,7 +8,7 @@ import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-d
 import { createClient } from "@/lib/supabase/client";
 import {
   AD_CHANNEL_LABEL, KIND_META, PLAN_PHASE_BG, STATUS_LABEL,
-  addDays, adOnDates, checkExecution, dayNumber, diffDays, draftDiff, generateDraft, monthWeeks, phaseStartLabel, planMonths, planPhase,
+  addDays, adActualPeriod, adOnDates, checkExecution, dayNumber, diffDays, draftDiff, generateDraft, monthWeeks, phaseStartLabel, planMonths, planPhase,
   type ActualChip, type AdChannel, type DraftItem, type ExecRecords, type ExecStatus, type PlanItem, type PlanKind, type PlanStatus,
 } from "@/lib/planCore";
 import type { PlanCohort } from "@/lib/plan";
@@ -24,6 +24,7 @@ const EXEC_STYLE: Record<ExecStatus, { mark: string; cls: string }> = {
   유예: { mark: "…", cls: "bg-amber-100 text-amber-800" },
   누락: { mark: "!", cls: "bg-red-100 text-red-800" },
   "사람 확인": { mark: "?", cls: "bg-sky-100 text-sky-800" },
+  "끄기 확인": { mark: "!", cls: "bg-orange-100 text-orange-800" },
   취소: { mark: "", cls: "bg-gray-100 text-gray-500" },
 };
 
@@ -477,7 +478,7 @@ export default function PlanBoard({
           </span>
         </h2>
         <p className="text-[12px] text-gray-600">
-          카톡 = 카톡 메시지 발송일 · 광고 = 광고비 시작일 ±1일 · 특강·라이브 = 콘텐츠 기록 종류(특강·라이브) · 홍보쇼츠·키콘 = 같은 날 숏폼·롱폼이 있으면 &quot;사람 확인&quot; · 기록이 없으면 2일 유예 후 누락
+          카톡 = 카톡 메시지 발송일 · 광고 = 광고비 시작일 ±1일 + 종류(장부에 종류가 있으면 종류까지, 없으면 매체) · 끄는 날이 지났는데 장부 종료일이 빈칸이면 &quot;끄기 확인&quot; · 특강·라이브 = 콘텐츠 기록 종류(특강·라이브) · 홍보쇼츠·키콘 = 같은 날 숏폼·롱폼이 있으면 &quot;사람 확인&quot; · 기록이 없으면 2일 유예 후 누락
         </p>
         {execRows.length > 0 && (
           <div className="overflow-x-auto">
@@ -501,7 +502,10 @@ export default function PlanBoard({
                       <td className="px-2 py-1.5">{it.owner ?? "—"}</td>
                       <td className="px-2 py-1.5">{STATUS_LABEL[it.status]}</td>
                       <td className="px-2 py-1.5">{it.ready ? "✓" : "—"}</td>
-                      <td className="px-2 py-1.5"><span className={`rounded px-1.5 py-0.5 text-[12px] font-bold ${EXEC_STYLE[e].cls}`}>{e}</span></td>
+                      <td className="px-2 py-1.5">
+                        <span className={`rounded px-1.5 py-0.5 text-[12px] font-bold ${EXEC_STYLE[e].cls}`}>{e}</span>
+                        {it.kind === "ad" && adActualPeriod(it, records) && <span className="ml-1 text-[11px] text-gray-600">{adActualPeriod(it, records)}</span>}
+                      </td>
                     </tr>
                   );
                 })}

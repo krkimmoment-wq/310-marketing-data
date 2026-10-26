@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { AD_CHANNEL_LABEL, adLedgerDisplay, adTypeOptions } from "@/lib/planCore";
 
 const PLATFORMS = [
   { value: "youtube", label: "▶️ 유튜브" },
@@ -16,8 +17,10 @@ const PLATFORM_LABEL: Record<string, string> = {
 export type Ad = {
   id: number;
   platform: string;
+  ad_type: string | null; // 종류 (옛 기록은 빈칸 = 확인 필요)
   campaign: string | null;
   period_start: string | null;
+  period_end: string | null; // 종료일 (빈칸 = 진행 중, 옛 기록은 확인 필요)
   cost: number | null;
   impressions: number | null;
   views: number | null;
@@ -37,15 +40,19 @@ export default function AdRow({ a }: { a: Ad }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
+  const initial = () => ({
     platform: a.platform,
+    ad_type: a.ad_type ?? "",
     campaign: a.campaign ?? "",
     period_start: a.period_start ?? "",
+    period_end: a.period_end ?? "",
     cost: a.cost ?? 0,
     impressions: a.impressions ?? 0,
     views: a.views ?? 0,
     clicks: a.clicks ?? 0,
   });
+  const [form, setForm] = useState(initial);
+  const shown = adLedgerDisplay(a.ad_type, a.period_end);
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
@@ -57,8 +64,10 @@ export default function AdRow({ a }: { a: Ad }) {
       .from("ad_spend")
       .update({
         platform: form.platform,
+        ad_type: form.ad_type || null,
         campaign: form.campaign || null,
         period_start: form.period_start || null,
+        period_end: form.period_end || null,
         cost: Number(form.cost) || 0,
         impressions: Number(form.impressions) || 0,
         views: Number(form.views) || 0,
@@ -88,24 +97,19 @@ export default function AdRow({ a }: { a: Ad }) {
   }
 
   function cancel() {
-    setForm({
-      platform: a.platform,
-      campaign: a.campaign ?? "",
-      period_start: a.period_start ?? "",
-      cost: a.cost ?? 0,
-      impressions: a.impressions ?? 0,
-      views: a.views ?? 0,
-      clicks: a.clicks ?? 0,
-    });
+    setForm(initial());
     setEditing(false);
   }
+  const needCheck = "text-amber-300"; // "확인 필요" 표시 색
 
   if (!editing) {
     return (
       <tr className="border-t border-slate-800">
         <td className="px-4 py-2 text-slate-200">{PLATFORM_LABEL[a.platform] ?? a.platform}</td>
+        <td className={`px-4 py-2 ${a.ad_type ? "text-slate-200" : needCheck}`}>{shown.type}</td>
         <td className="px-4 py-2 text-slate-300 max-w-xs truncate" title={a.campaign ?? ""}>{a.campaign ?? "-"}</td>
         <td className="px-4 py-2 text-slate-300">{a.period_start ?? "-"}</td>
+        <td className={`px-4 py-2 ${shown.end === "확인 필요" ? needCheck : "text-slate-300"}`}>{shown.end}</td>
         <td className="px-4 py-2 font-medium text-slate-100">{(a.cost ?? 0).toLocaleString("ko-KR")}원</td>
         <td className="px-4 py-2 text-slate-300">{(a.impressions ?? 0).toLocaleString("ko-KR")}</td>
         <td className="px-4 py-2 text-slate-300">{(a.views ?? 0).toLocaleString("ko-KR")}</td>
@@ -122,12 +126,27 @@ export default function AdRow({ a }: { a: Ad }) {
   return (
     <tr className="border-t border-cyan-500/30 bg-cyan-500/5">
       <td className="px-3 py-2">
-        <select value={form.platform} onChange={(e) => set("platform", e.target.value)} className={inputCls}>
+        <select
+          value={form.platform}
+          onChange={(e) => {
+            const p = e.target.value;
+            // 매체를 바꾸면 종류도 그 매체에 맞는 값으로 (DB 규칙: 인스타 ↔ 인스타, 유튜브 ↔ Google Ads·스튜디오 프로모션)
+            setForm((f) => ({ ...f, platform: p, ad_type: f.ad_type && adTypeOptions(p).includes(f.ad_type as never) ? f.ad_type : "" }));
+          }}
+          className={inputCls}
+        >
           {PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+        </select>
+      </td>
+      <td className="px-3 py-2">
+        <select value={form.ad_type} onChange={(e) => set("ad_type", e.target.value)} className={inputCls} aria-label="종류">
+          <option value="">확인 필요</option>
+          {adTypeOptions(form.platform).map((t) => <option key={t} value={t}>{AD_CHANNEL_LABEL[t]}</option>)}
         </select>
       </td>
       <td className="px-3 py-2"><input value={form.campaign} onChange={(e) => set("campaign", e.target.value)} className={inputCls} /></td>
       <td className="px-3 py-2"><input type="date" value={form.period_start} onChange={(e) => set("period_start", e.target.value)} className={inputCls} /></td>
+      <td className="px-3 py-2"><input type="date" value={form.period_end} min={form.period_start} onChange={(e) => set("period_end", e.target.value)} className={inputCls} aria-label="종료일 (진행 중이면 빈칸)" title="진행 중이면 빈칸" /></td>
       <td className="px-3 py-2"><input type="number" value={form.cost} onChange={(e) => set("cost", Number(e.target.value))} className={inputCls} /></td>
       <td className="px-3 py-2"><input type="number" value={form.impressions} onChange={(e) => set("impressions", Number(e.target.value))} className={inputCls} /></td>
       <td className="px-3 py-2"><input type="number" value={form.views} onChange={(e) => set("views", Number(e.target.value))} className={inputCls} /></td>
