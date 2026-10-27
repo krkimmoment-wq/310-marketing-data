@@ -2,7 +2,7 @@
 // 규칙 초안 · 칸 구간 색 · 달력 · 광고 ON 띠 · 계획 대비 실행 확인 · 내일 준비 경고 · 광고 예산
 import type { CohortFull } from "./dayTableCore";
 
-export type PlanKind = "lecture" | "live" | "kakao" | "ad" | "keycon" | "promo_short" | "etc";
+export type PlanKind = "lecture" | "live" | "kakao" | "ad" | "keycon" | "promo_short" | "support" | "openchat" | "etc";
 export type PlanStatus = "planned" | "done" | "canceled";
 export type AdChannel = "google_ads" | "studio_promotion" | "instagram";
 
@@ -27,7 +27,7 @@ export type PlanItem = {
 
 export type DraftItem = Pick<PlanItem, "plan_date" | "end_date" | "plan_time" | "kind" | "title" | "optional" | "memo" | "source"> & { rule_key: string };
 
-// 종류별 이름·색 (특강 보라 / 챌린지 라이브 주황 / 카톡 노랑 / 광고 빨강 / 키콘 초록 / 홍보쇼츠 파랑)
+// 종류별 이름·색 (특강 보라 / 챌린지 라이브 주황 / 카톡 노랑 / 광고 빨강 / 키콘 초록 / 홍보쇼츠 파랑 / 응대 청록 / 오픈채팅 공지 분홍)
 export const KIND_META: Record<PlanKind, { label: string; bg: string; fg: string; border: string }> = {
   lecture: { label: "특강", bg: "#EDE9FE", fg: "#5B21B6", border: "#8B5CF6" },
   live: { label: "챌린지 라이브", bg: "#FFEDD5", fg: "#9A3412", border: "#F97316" },
@@ -35,6 +35,8 @@ export const KIND_META: Record<PlanKind, { label: string; bg: string; fg: string
   ad: { label: "광고", bg: "#FEE2E2", fg: "#991B1B", border: "#EF4444" },
   keycon: { label: "키콘", bg: "#DCFCE7", fg: "#166534", border: "#22C55E" },
   promo_short: { label: "홍보쇼츠", bg: "#DBEAFE", fg: "#1E40AF", border: "#3B82F6" },
+  support: { label: "응대", bg: "#CCFBF1", fg: "#115E59", border: "#14B8A6" },
+  openchat: { label: "오픈채팅 공지", bg: "#FCE7F3", fg: "#9D174D", border: "#EC4899" },
   etc: { label: "기타", bg: "#F3F4F6", fg: "#374151", border: "#9CA3AF" },
 };
 export const AD_CHANNEL_LABEL: Record<AdChannel, string> = { google_ads: "Google Ads", studio_promotion: "스튜디오 프로모션", instagram: "인스타" };
@@ -125,6 +127,14 @@ export function planMonths(c: Pick<CohortFull, "pre_open" | "class_start">, toda
   return out;
 }
 
+// 끝나는 날(end_date)을 저장하는 종류 = 기간 띠 (광고 ON · 키콘 상시 · 특강 후 응대)
+export const BAND_KINDS: PlanKind[] = ["ad", "keycon", "support"];
+export const isBandKind = (k: PlanKind) => BAND_KINDS.includes(k);
+
+// 라이브를 옮기면 같이 움직이는 오픈채팅 공지 (규칙 초안의 라이브 칩 기준)
+export const LIVE_RULE_KEY = "live:main";
+export const isLiveNotice = (x: Pick<PlanItem, "kind" | "rule_key">) => x.kind === "openchat" && !!x.rule_key?.startsWith("openchat:live:");
+
 // 광고 ON 날짜 (취소 제외, 켜는 날 ~ 끄는 날)
 export function adOnDates(items: Pick<PlanItem, "kind" | "plan_date" | "end_date" | "status">[]): Set<string> {
   const out = new Set<string>();
@@ -209,13 +219,19 @@ export function generateDraft(c: CohortFull): { ok: true; items: DraftItem[] } |
     ["eb2", "2차EB", C.eb2_open, C.eb2_close],
     ["reg", "정규", C.reg_open, C.reg_close],
   ];
+  // 10/27 미팅 규칙: 할인 구간마다 특강(시작 2일 전) · 오픈채팅 공지 · 응대 · 홍보쇼츠 촬영/발행 · 광고 · 소재 승인/재고 점검
   for (const [k, label, open, close] of sales) {
-    const eve = addDays(open, -1);
-    if (k === "eb1") add(`lecture:${k}`, eve, "lecture", `${label} 전날 특강`, { plan_time: "20:00" });
-    else add(`live:${k}`, eve, "live", `${label} 전날 챌린지 라이브`, { plan_time: "20:00" });
-    add(`promo_short:${k}`, eve, "promo_short", `${label} 홍보쇼츠`);
-    add(`etc:approve:${k}`, addDays(open, -7), "etc", "광고 소재 승인 확인"); // 할인 오픈 7일 전
-    add(`ad:${k}`, eve, "ad", `${label} 광고`, { end_date: close, memo: k === "reg" ? "정규 3일 집중, 이후 소액" : null });
+    const lec = addDays(open, -2);
+    add(`lecture:${k}`, lec, "lecture", `${label} 특강`, { plan_time: "20:00", memo: "신청: 오픈채팅 입장 후 링크 공개" });
+    add(`openchat:lecture:${k}:link`, addDays(lec, -2), "openchat", "특강 신청 링크 공개 (오픈채팅 공지)");
+    add(`openchat:lecture:${k}:day`, lec, "openchat", "특강 당일 안내 (오픈채팅 공지)");
+    add(`kakao:${k}:notice`, addDays(lec, -1), "kakao", "특강 안내", { memo: "친구 전체 발송 (카톡 발송 여부 결정 대기) → 오픈채팅 입장 유도" });
+    add(`support:${k}`, addDays(lec, 1), "support", `${label} 특강 후 응대`, { end_date: addDays(lec, 3) }); // 특강 다음 날부터 3일
+    // 홍보쇼츠: 촬영 = 발행 3일 전 · 발행·광고 ON = 할인 전날 · 광고 OFF = 그 구간 마감 (정규는 아래 3칩으로 첫 주까지)
+    const pub = addDays(open, -1);
+    add(`promo_short:${k}:shoot`, addDays(pub, -3), "promo_short", `${label} 홍보쇼츠 촬영`);
+    add(`promo_short:${k}`, pub, "promo_short", `${label} 홍보쇼츠 발행`);
+    add(`ad:${k}`, pub, "ad", `${label} 홍보쇼츠 광고`, { end_date: close, memo: k === "reg" ? "정규 3일 집중, 이후 소액" : null });
     if (k === "reg") {
       // 정규 광고 3칩: 정규(전날~마감) / 추가(마감 다음 날~클래스 전날) / 클래스 첫 주(클래스 시작~첫 일요일)
       const extraFrom = addDays(close, 1), extraTo = addDays(C.class_start, -1);
@@ -225,20 +241,21 @@ export function generateDraft(c: CohortFull): { ok: true; items: DraftItem[] } |
       }
       add("ad:class", C.class_start, "ad", "클래스 첫 주 광고", { end_date: settle, memo: "결제 되는지 확인 후 유지" });
     }
-    add(`kakao:${k}:notice`, eve, "kakao", k === "eb1" ? "특강 안내" : "챌린지 라이브 안내", { memo: "친구 전체 발송" });
+    add(`etc:approve:${k}`, addDays(open, -7), "etc", "광고 소재 승인 확인"); // 할인 오픈 7일 전
+    add(`etc:stock:${k}`, addDays(open, -7), "etc", "촬영 쇼츠 4개 재고 점검");
     add(`kakao:${k}:open`, open, "kakao", `${label} 오픈`);
     const mid = addDays(open, Math.floor(diffDays(open, close) / 2));
     if (open < mid && mid < close) add(`kakao:${k}:mid`, mid, "kakao", `${label} 중간`, { optional: true });
     add(`kakao:${k}:close`, close, "kakao", `${label} 마감`);
   }
-  const waits: [string, string, string, string][] = [
-    ["wait1", addDays(C.eb1_close, 1), C.eb2_open, "2차EB"],
-    ["wait2", addDays(C.eb2_close, 1), C.reg_open, "정규"],
-  ];
-  for (const [w, start, nextOpen, label] of waits) {
-    const kc = addDays(nextOpen, -10);
-    add(`keycon:${w}`, kc < start ? start : kc, "keycon", `${label} 전 키콘`);
-  }
+  // 챌린지 라이브: 기수당 1회 (오픈채팅). 기본 = 정규 시작 전날, 칩을 끌면 공지 3개도 같이 이동
+  const live = addDays(C.reg_open, -1);
+  add(LIVE_RULE_KEY, live, "live", "챌린지 라이브 (오픈채팅)", { plan_time: "20:00" });
+  add("openchat:live:before", addDays(live, -1), "openchat", "라이브 안내 (오픈채팅 공지)");
+  add("openchat:live:day", live, "openchat", "라이브 당일 안내 (오픈채팅 공지)");
+  add("openchat:live:after", addDays(live, 1), "openchat", "라이브 후 안내 (오픈채팅 공지)");
+  // 키콘: 사전등록 첫날 ~ 최종 집계일 상시 띠 (키콘 ②는 시작일이 정해지면 직접 추가)
+  add("keycon:1", C.pre_open, "keycon", "키콘 ① 40대 지방만 −14kg", { end_date: settle });
   // 공백 채움 카톡: 사전등록(오픈일~첫 카톡)·대기 기간에 카톡 사이가 7일 넘게 비면 1통 (일요일 저녁)
   // 공백 채움은 사전등록·대기 기간만 → 추가 모집 안내는 계산에서 뺌
   const ks = items.filter((x) => x.kind === "kakao" && x.rule_key !== "kakao:extra:notice").map((x) => x.plan_date).sort();
@@ -325,6 +342,7 @@ export function checkExecution(
   else if (it.kind === "live") matched = rec.content.some((x) => x.date === d && x.category === "라이브");
   else if (it.kind === "promo_short") human = rec.videos.some((v) => v.date === d && v.kind === "숏폼");
   else if (it.kind === "keycon") human = rec.videos.some((v) => v.date === d && v.kind === "롱폼");
+  else if (it.kind === "support" || it.kind === "openchat") human = true; // 기록할 곳이 없음 = 사람 확인
   else human = true; // 기타 = 사람 확인
   if (matched) return "완료";
   if (it.status === "done") return "완료(직접)";

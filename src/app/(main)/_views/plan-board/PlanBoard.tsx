@@ -1,5 +1,5 @@
 "use client";
-// 기수 계획판 — 월 달력(칸 배경 = 구간 색), 종류별 칩, 칩 끌어서 날짜 옮기기, 오른쪽 편집 창, 규칙 초안 미리보기, 계획 대비 실행 확인
+// 기수 계획판 — 월 달력(칸 배경 = 구간 색), 종류별 칩, 기간 띠(키콘·응대), 칩 끌어서 날짜 옮기기, 오른쪽 편집 창, 규칙 초안 미리보기, 계획 대비 실행 확인
 // 끌어서 옮기기: @atlaskit/pragmatic-drag-and-drop (Apache-2.0)
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { deleteWithLog, withEditor } from "@/lib/audit";
 import {
   AD_CHANNEL_LABEL, KIND_META, PLAN_PHASE_BG, STATUS_LABEL,
-  addDays, adActualPeriod, adOnDates, checkExecution, dayNumber, diffDays, draftDiff, generateDraft, monthWeeks, phaseStartLabel, planMonths, planPhase,
+  LIVE_RULE_KEY, addDays, adActualPeriod, adOnDates, checkExecution, dayNumber, diffDays, draftDiff, generateDraft, isBandKind, isLiveNotice, monthWeeks, phaseStartLabel, planMonths, planPhase,
   type ActualChip, type AdChannel, type DraftItem, type ExecRecords, type ExecStatus, type PlanItem, type PlanKind, type PlanStatus,
 } from "@/lib/planCore";
 import type { PlanCohort } from "@/lib/plan";
@@ -83,11 +83,12 @@ function RecordChip({ chip }: { chip: ActualChip }) {
 }
 
 function DayCell({
-  date, cohort, adOn, items, actual, execOf, selectedId, onPick, onAdd, onDropItem,
+  date, cohort, adOn, bands, items, actual, execOf, selectedId, onPick, onAdd, onDropItem,
 }: {
   date: string | null;
   cohort: PlanCohort;
   adOn: boolean;
+  bands: PlanItem[]; // 이 날을 지나는 키콘·응대 띠 (시작일 칩은 items 쪽)
   items: PlanItem[];
   actual: ActualChip[];
   execOf: (it: PlanItem) => ExecStatus;
@@ -139,6 +140,16 @@ function DayCell({
       </div>
       {startLabel && <span className="w-fit rounded bg-white/80 px-1 text-[10px] font-bold text-gray-800">{startLabel}</span>}
       {adOn && <span className="rounded-sm bg-red-600 px-1 text-[10px] font-bold text-white">광고 ON</span>}
+      {bands.map((b) => {
+        const k = KIND_META[b.kind];
+        const showLabel = dw === 0 || date.endsWith("-01"); // 주 첫날·달 첫날만 이름 (매일 쓰면 칸이 가득 참)
+        return (
+          <span key={`b${b.id}`} title={`${k.label} · ${b.title ?? ""} ${md(b.plan_date)}~${md(b.end_date ?? b.plan_date)}`} className="flex flex-col gap-px">
+            <span className="h-1.5 rounded-sm" style={{ background: k.border, opacity: b.status === "canceled" ? 0.35 : 1 }} />
+            {showLabel && <span className="truncate text-[10px] font-bold leading-tight" style={{ color: k.fg }}>… {b.title ?? k.label}</span>}
+          </span>
+        );
+      })}
       <div className="flex flex-col gap-0.5">
         {actual.map((c, i) => (
           <RecordChip key={`r${i}`} chip={c} />
@@ -197,7 +208,7 @@ export default function PlanBoard({
     const sb = createClient();
     const row = {
       plan_date: form.plan_date,
-      end_date: form.kind === "ad" ? form.end_date || null : null,
+      end_date: isBandKind(form.kind) ? form.end_date || null : null, // 광고 끄는 날 · 키콘·응대 끝나는 날
       plan_time: form.plan_time || null,
       kind: form.kind,
       title: form.title || null,
@@ -234,23 +245,27 @@ export default function PlanBoard({
     setMsg(logError ? "삭제했습니다. (삭제 기록 실패: " + logError + ")" : "삭제했습니다.");
     router.refresh();
   }
-  // 끌어서 날짜 옮기기 (광고는 끄는 날도 같은 만큼 이동)
+  // 끌어서 날짜 옮기기 (띠는 끝나는 날도 같은 만큼 이동 · 규칙 초안의 라이브는 오픈채팅 공지 3개도 같이 이동)
   async function move(id: number, date: string) {
     const it = list.find((x) => x.id === id);
     if (!it || it.plan_date === date) return;
     const delta = diffDays(it.plan_date, date);
-    const patch = { plan_date: date, end_date: it.end_date ? addDays(it.end_date, delta) : null };
+    const shift = (x: PlanItem) => ({ plan_date: addDays(x.plan_date, delta), end_date: x.end_date ? addDays(x.end_date, delta) : null });
+    const linked = it.rule_key === LIVE_RULE_KEY ? list.filter((x) => isLiveNotice(x)) : [];
+    const moves = [it, ...linked].map((x) => ({ id: x.id, patch: shift(x) }));
     const before = list;
-    setList((l) => l.map((x) => (x.id === id ? { ...x, ...patch } : x)));
-    const { error } = await createClient()
-      .from("plan_items")
-      .update({ ...patch, updated_at: new Date().toISOString(), updated_by: await who() })
-      .eq("id", id);
-    if (error) {
-      setList(before);
-      return setMsg("옮기기 실패: " + error.message);
+    setList((l) => l.map((x) => { const mv = moves.find((m) => m.id === x.id); return mv ? { ...x, ...mv.patch } : x; }));
+    const by = await who();
+    const sb = createClient();
+    for (const mv of moves) {
+      const { error } = await sb.from("plan_items").update({ ...mv.patch, updated_at: new Date().toISOString(), updated_by: by }).eq("id", mv.id);
+      if (error) {
+        setList(before);
+        router.refresh(); // 일부만 옮겨졌을 수 있으니 DB 값으로 다시 맞춤
+        return setMsg("옮기기 실패: " + error.message);
+      }
     }
-    setMsg(`${KIND_META[it.kind].label} "${it.title ?? ""}" → ${md(date)}(${wd(date)})로 옮김`);
+    setMsg(`${KIND_META[it.kind].label} "${it.title ?? ""}" → ${md(date)}(${wd(date)})로 옮김${linked.length ? ` · 오픈채팅 공지 ${linked.length}개도 ${delta > 0 ? "+" : ""}${delta}일 같이 옮김` : ""}`);
     router.refresh();
   }
   async function addDraft() {
@@ -341,7 +356,7 @@ export default function PlanBoard({
               {p}
             </span>
           ))}
-          <span>· 점선 칩 = 계획 (점 테두리 = 선택 항목) · 실선 칩 = 실제 기록 · 칩 끝 표시: ✓ 완료 · … 2일 유예 · ! 누락 · ? 사람 확인</span>
+          <span>· 점선 칩 = 계획 (점 테두리 = 선택 항목) · 실선 칩 = 실제 기록 · 얇은 띠 = 키콘·응대 기간 · 칩 끝 표시: ✓ 완료 · … 2일 유예 · ! 누락 · ? 사람 확인</span>
         </div>
         {msg && <p role="status" className="text-[13px] font-bold text-blue-800">{msg}</p>}
       </div>
@@ -381,6 +396,7 @@ export default function PlanBoard({
                 date={date}
                 cohort={cohort}
                 adOn={!!date && adOn.has(date)}
+                bands={date ? visible.filter((it) => it.kind !== "ad" && isBandKind(it.kind) && it.end_date && it.plan_date < date && date <= it.end_date) : []}
                 items={date ? visible.filter((it) => it.plan_date === date) : []}
                 actual={date && showActual ? actual.filter((c) => c.date === date && !hidden.includes(c.kind)) : []}
                 execOf={execOf}
@@ -459,6 +475,11 @@ export default function PlanBoard({
                   </div>
                 </div>
               )}
+              {(form.kind === "keycon" || form.kind === "support") && (
+                <label className="flex flex-col gap-1">끝나는 날 (비우면 하루짜리)
+                  <input type="date" value={form.end_date ?? ""} onChange={(e) => setForm({ ...form, end_date: e.target.value || null })} className="min-h-10 rounded-lg border border-gray-300 px-2" />
+                </label>
+              )}
               <label className="flex flex-col gap-1">메모
                 <textarea value={form.memo ?? ""} rows={3} onChange={(e) => setForm({ ...form, memo: e.target.value })} className="rounded-lg border border-gray-300 px-2 py-1" />
               </label>
@@ -481,7 +502,7 @@ export default function PlanBoard({
           </span>
         </h2>
         <p className="text-[12px] text-gray-600">
-          카톡 = 카톡 메시지 발송일 · 광고 = 광고비 시작일 ±1일 + 종류(장부에 종류가 있으면 종류까지, 없으면 매체) · 끄는 날이 지났는데 장부 종료일이 빈칸이면 &quot;끄기 확인&quot; · 특강·라이브 = 콘텐츠 기록 종류(특강·라이브) · 홍보쇼츠·키콘 = 같은 날 숏폼·롱폼이 있으면 &quot;사람 확인&quot; · 기록이 없으면 2일 유예 후 누락
+          카톡 = 카톡 메시지 발송일 · 응대·오픈채팅 공지 = 사람 확인 · 광고 = 광고비 시작일 ±1일 + 종류(장부에 종류가 있으면 종류까지, 없으면 매체) · 끄는 날이 지났는데 장부 종료일이 빈칸이면 &quot;끄기 확인&quot; · 특강·라이브 = 콘텐츠 기록 종류(특강·라이브) · 홍보쇼츠·키콘 = 같은 날 숏폼·롱폼이 있으면 &quot;사람 확인&quot; · 기록이 없으면 2일 유예 후 누락
         </p>
         {execRows.length > 0 && (
           <div className="overflow-x-auto">

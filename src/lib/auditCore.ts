@@ -29,7 +29,7 @@ export function isHiddenByDefault(r: RegLike): boolean {
 
 const md = (d: unknown) => (typeof d === "string" && d.length >= 10 ? `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}` : "날짜 없음");
 const won = (n: unknown) => `${Number(n ?? 0).toLocaleString("ko-KR")}원`;
-const KIND_LABEL: Record<string, string> = { lecture: "특강", live: "챌린지 라이브", kakao: "카톡", ad: "광고", keycon: "키콘", promo_short: "홍보쇼츠", etc: "기타" };
+const KIND_LABEL: Record<string, string> = { lecture: "특강", live: "챌린지 라이브", kakao: "카톡", ad: "광고", keycon: "키콘", promo_short: "홍보쇼츠", support: "응대", openchat: "오픈채팅 공지", etc: "기타" };
 const STATUS_LABEL: Record<string, string> = { planned: "계획", done: "완료", canceled: "취소" };
 
 // 삭제 기록 한 줄 요약 — 기수·날짜·금액·상태 같은 값만 (이름·제목·메모 같은 자유 글은 넣지 않음)
