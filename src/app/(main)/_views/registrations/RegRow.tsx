@@ -3,23 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { deleteWithLog, withEditor } from "@/lib/audit";
 import { statusOf } from "./StatusCell";
 
 const SECTIONS = ["사전등록", "1차EB", "대기1", "2차EB", "대기2", "정규", "추가"];
 const SNS = ["", "유튜브", "인스타", "네이버TV", "틱톡"];
 const PAY_PLATFORMS = ["홈페이지", "유튜브", "기타"];
-const STATUSES = ["입금완료", "미입금", "환불", "기수이전"];
+const STATUSES = ["입금완료", "미입금", "주문취소", "환불", "기수이전"];
 
 // 상태 → 컬럼 매핑
 const STATUS_MAP: Record<string, { payment: string; is_refund: boolean; is_transfer: boolean }> = {
   입금완료: { payment: "입금완료", is_refund: false, is_transfer: false },
   미입금: { payment: "미입금", is_refund: false, is_transfer: false },
+  주문취소: { payment: "주문취소", is_refund: false, is_transfer: false },
   환불: { payment: "입금완료", is_refund: true, is_transfer: false },
   기수이전: { payment: "입금완료", is_refund: false, is_transfer: true },
 };
 const STATUS_VIEW: Record<string, { label: string; cls: string }> = {
   입금완료: { label: "✅ 입금", cls: "text-emerald-300" },
   미입금: { label: "⏳ 미입금", cls: "text-amber-300" },
+  주문취소: { label: "✖️ 주문취소", cls: "text-slate-400" },
   환불: { label: "↩️ 환불", cls: "text-rose-300" },
   기수이전: { label: "🔄 기수이전", cls: "text-slate-400" },
 };
@@ -72,7 +75,7 @@ export default function RegRow({ r, cohorts, cohortId }: { r: Reg; cohorts: { id
     const sb = createClient();
     const { error } = await sb
       .from("registrations")
-      .update({
+      .update(await withEditor({
         name: form.name,
         reg_date: form.reg_date,
         section: form.section,
@@ -85,7 +88,7 @@ export default function RegRow({ r, cohorts, cohortId }: { r: Reg; cohorts: { id
         transfer_to_cohort_id: form.status === "기수이전" ? Number(form.transfer_to) || null : null,
         // 환불일 때만 환불액 저장(미입력=0=전액환불), 그 외엔 0
         refund_amount: form.status === "환불" ? Number(form.refund_amount) || 0 : 0,
-      })
+      }, sb))
       .eq("id", r.id);
     setSaving(false);
     if (error) {
@@ -97,15 +100,23 @@ export default function RegRow({ r, cohorts, cohortId }: { r: Reg; cohorts: { id
   }
 
   async function remove() {
-    if (!confirm(`등록자 "${r.name}"를 삭제할까요?\n(환불·기수이전이면 삭제 대신 상태 수정을 권장합니다)`)) return;
+    if (
+      !confirm(
+        `등록자 "${r.name}"를 삭제할까요?\n` +
+          `· 미입금·취소는 지우지 말고 상태만 바꾸면 자동으로 숨겨집니다\n` +
+          `· 환불·기수이전도 삭제 대신 상태 수정을 권장합니다\n` +
+          `· 삭제하면 누가·언제·무엇을 지웠는지 기록이 남습니다 (이름은 기록하지 않음)`
+      )
+    )
+      return;
     setSaving(true);
-    const sb = createClient();
-    const { error } = await sb.from("registrations").delete().eq("id", r.id);
+    const { error, logError } = await deleteWithLog("registrations", r, cohortName(r.cohort_id));
     setSaving(false);
     if (error) {
-      alert("삭제 실패: " + error.message);
+      alert("삭제 실패: " + error);
       return;
     }
+    if (logError) alert("삭제는 됐지만 삭제 기록을 남기지 못했습니다: " + logError);
     router.refresh();
   }
 
@@ -114,7 +125,7 @@ export default function RegRow({ r, cohorts, cohortId }: { r: Reg; cohorts: { id
     if (!confirm(`"${r.name}"의 기수이전을 취소하고 ${cohortName(r.cohort_id)} 정상 등록으로 되돌릴까요?`)) return;
     setSaving(true);
     const sb = createClient();
-    const { error } = await sb.from("registrations").update({ is_transfer: false, transfer_to_cohort_id: null }).eq("id", r.id);
+    const { error } = await sb.from("registrations").update(await withEditor({ is_transfer: false, transfer_to_cohort_id: null }, sb)).eq("id", r.id);
     setSaving(false);
     if (error) {
       alert("이전 취소 실패: " + error.message);

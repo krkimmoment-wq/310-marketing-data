@@ -3,7 +3,7 @@
 import { Fragment, useState } from "react";
 import ContentRow, { type Content, CATEGORIES } from "./ContentRow";
 
-export default function ContentList({ items }: { items: Content[] }) {
+export default function ContentList({ items, cohortName }: { items: Content[]; cohortName?: string }) {
   const [q, setQ] = useState("");
   const kw = q.trim().toLowerCase();
 
@@ -65,7 +65,7 @@ export default function ContentList({ items }: { items: Content[] }) {
                         <span className="ml-2 font-normal text-slate-400">· {rows.length}건 · 클릭 {clickSum.toLocaleString("ko-KR")}</span>
                       </td>
                     </tr>
-                    {rows.map((r) => <ContentRow key={r.id} c={r} />)}
+                    {rows.map((r) => <ContentRow key={r.id} c={r} cohortName={cohortName} />)}
                   </Fragment>
                 );
               })}

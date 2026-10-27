@@ -89,7 +89,7 @@ export default async function AdSpendPage({
             </thead>
             <tbody>
               {list.map((a) => (
-                <AdRow key={a.id} a={a} />
+                <AdRow key={a.id} a={a} cohortName={name} />
               ))}
               {list.length === 0 && (
                 <tr>

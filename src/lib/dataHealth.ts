@@ -127,7 +127,7 @@ export async function getDataHealth(): Promise<{ items: HealthItem[]; cohortName
   if (noDest.length) add("red", `도착 기수 없는 기수이전 ${noDest.length}건 (매출 누락)`, who(noDest), "/manage?tab=registrations");
   const noRefundAmt = regs.filter((r) => r.is_refund && !r.refund_amount);
   if (noRefundAmt.length) add("yellow", `환불액 미입력 ${noRefundAmt.length}건 (전액환불로 계산 중)`, who(noRefundAmt), "/manage?tab=registrations");
-  const oldUnpaid = regs.filter((r) => r.payment !== "입금완료" && r.reg_date && days(r.reg_date, today) > 14);
+  const oldUnpaid = regs.filter((r) => r.payment === "미입금" && r.reg_date && days(r.reg_date, today) > 14);
   if (oldUnpaid.length) add("yellow", `2주 넘은 미입금 ${oldUnpaid.length}건`, who(oldUnpaid), "/manage?tab=registrations");
   const cnt = new Map<string, number>();
   for (const r of regs) cnt.set(`${r.cohort_id}|${r.name}`, (cnt.get(`${r.cohort_id}|${r.name}`) ?? 0) + 1);

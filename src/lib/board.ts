@@ -20,7 +20,7 @@ const unpaidCount = async (cohortId: number) => {
     .from("registrations")
     .select("id", { count: "exact", head: true })
     .eq("cohort_id", cohortId)
-    .neq("payment", "입금완료")
+    .eq("payment", "미입금") // 주문취소는 미입금으로 세지 않음
     .eq("is_refund", false)
     .eq("is_transfer", false);
   return count ?? 0;

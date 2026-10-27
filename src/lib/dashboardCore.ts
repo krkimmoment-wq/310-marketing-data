@@ -106,6 +106,21 @@ export function conclusion(table: DayTableData, today: string): Conclusion | nul
   return { cohort: focus.name, day: last.day, dn: last.dn, current: last.cum, avg: row?.avg ?? null, diff: row?.diff ?? null, projection, incs };
 }
 
+// 판단판 예상 최종 설명용: 오늘 시점 표시 (클래스 시작까지 남은 날 dn 기준)
+export function dnLabel(dn: number | null): string | null {
+  if (dn === null) return null;
+  if (dn > 0) return `D-${dn}`;
+  if (dn === 0) return "D-0, 클래스 시작일";
+  return `D+${-dn}`;
+}
+
+// 특정 비교 기수를 뺀 예상 최종 (예: 일별 기록이 끊긴 13기 제외). 그 기수가 없거나 그 기수만 있으면 null
+export function projectionExcluding(current: number, incs: { name: string; inc: number }[], exclude: string): number | null {
+  const rest = incs.filter((x) => x.name !== exclude);
+  if (rest.length === incs.length || rest.length === 0) return null;
+  return Math.round(current + rest.reduce((s, v) => s + v.inc, 0) / rest.length);
+}
+
 // ── 구간 요약: 결제일 기준 구간별 총등록·환불·미입금·이전·실등록·비틀리·광고비 + 같은 구간 다른 기수 실등록
 export const PHASES = ["Day1이전", "사전등록", "1차EB", "대기1", "2차EB", "대기2", "정규", "추가"] as const;
 
@@ -164,6 +179,8 @@ export function phaseSummary(
     if (!r.reg_date) continue;
     // 이 기수 안의 '다른 기수에서 들어옴' 행(이전 표시 + 도착 기수 = 이 기수)은 구간별 줄에서 빼고 합계의 '들어옴'으로만 센다
     if (r.is_transfer && r.transfer_to_cohort_id === c.id) continue;
+    // 주문취소는 등록으로 세지 않음 (미입금 칸에도 넣지 않음)
+    if (r.payment === "주문취소") continue;
     const row = rows.get(phaseOf(c, r.reg_date))!;
     row.total++;
     if (r.is_refund) row.refund++;

@@ -6,6 +6,7 @@ import { getLatestCohortName, resolveCohortPair } from "@/lib/cohorts";
 import { getDataHealth } from "@/lib/dataHealth";
 import { getBoard } from "@/lib/board";
 import { bandOf, settleDate } from "@/lib/dayTableCore";
+import { dnLabel, projectionExcluding } from "@/lib/dashboardCore";
 import { getTomorrowPlans } from "@/lib/plan";
 import { KIND_META, tomorrowWarning } from "@/lib/planCore";
 import DataHealthCard from "@/components/DataHealthCard";
@@ -55,6 +56,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const sameCohort = kpi?.cohortName === c.name;
   const goal = sameCohort ? kpi!.goal : 0;
   const official = sameCohort ? kpi!.realRegs : con?.current ?? 0;
+  // 예상 최종 설명용: 오늘 비교 시점(D-N), 최종 집계일, 13기를 뺀 값(13기가 비교에 있을 때만)
+  const conDn = con ? dnLabel(con.dn) : null;
+  const conSettle = c.class_start ? settleDate(c.class_start) : null;
+  const projNo13 = con ? projectionExcluding(con.current, con.incs, "13기") : null;
   const ms = nextMilestone(c as unknown as Record<string, string | null>, today);
   const todayDate = new Date(today + "T00:00:00Z");
   const dn = c.class_start ? daysAgo(today, c.class_start) : null;
@@ -89,11 +94,15 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                   </span>
                 </>
               )}
-              {" "}· 예상 최종 약 <b>{con.projection}명</b> / 목표 {goal}
+              {" "}· 예상 최종 약 <b>{con.projection}명</b>
+              {projNo13 !== null && <span className="text-[16px] font-medium text-gray-300"> (13기 제외 시 약 {projNo13}명)</span>}
+              {" "}/ 목표 {goal}
             </p>
             <span className="text-[12px] text-gray-300">
-              평균 = {board.compareNames.join("·")} 같은 Day 누적 평균 · 예상 최종 = 현재 + 비교 기수들의 &quot;오늘과 같은 D-N → 최종 집계일&quot; 증가분 평균
+              평균 = {board.compareNames.join("·")} 같은 Day 누적 평균 · 예상 최종 = 현재 + 비교 기수들의 &quot;오늘과 같은 시점{conDn ? `(오늘은 ${conDn})` : ""} → 최종 집계일{conSettle ? `(${md(conSettle)})` : ""}&quot; 증가분 평균
               {con.incs.length > 0 && ` (${con.incs.map((x) => `${x.name} +${x.inc}`).join(" · ")})`}
+              {projNo13 !== null && ` · 13기 제외 = ${con.incs.filter((x) => x.name !== "13기").map((x) => x.name).join("·")} 평균`}
+              {" "}· 날짜가 바뀌면 비교 시점도 바뀌어 하루 사이에 1~2명 달라질 수 있음
             </span>
           </section>
         )}

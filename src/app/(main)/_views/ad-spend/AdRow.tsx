@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { deleteWithLog, withEditor } from "@/lib/audit";
 import { AD_CHANNEL_LABEL, adLedgerDisplay, adTypeOptions } from "@/lib/planCore";
 
 const PLATFORMS = [
@@ -36,7 +37,7 @@ function ctrOf(m: { clicks: number | null; impressions: number | null }) {
   return imp ? `${Math.round((clk / imp) * 1000) / 10}%` : "-";
 }
 
-export default function AdRow({ a }: { a: Ad }) {
+export default function AdRow({ a, cohortName }: { a: Ad; cohortName?: string }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -62,7 +63,7 @@ export default function AdRow({ a }: { a: Ad }) {
     const sb = createClient();
     const { error } = await sb
       .from("ad_spend")
-      .update({
+      .update(await withEditor({
         platform: form.platform,
         ad_type: form.ad_type || null,
         campaign: form.campaign || null,
@@ -72,7 +73,7 @@ export default function AdRow({ a }: { a: Ad }) {
         impressions: Number(form.impressions) || 0,
         views: Number(form.views) || 0,
         clicks: Number(form.clicks) || 0,
-      })
+      }, sb))
       .eq("id", a.id);
     setSaving(false);
     if (error) {
@@ -84,15 +85,16 @@ export default function AdRow({ a }: { a: Ad }) {
   }
 
   async function remove() {
-    if (!confirm(`이 광고비(${PLATFORM_LABEL[a.platform] ?? a.platform} · ${a.campaign ?? "캠페인 없음"})를 삭제할까요?`)) return;
+    if (!confirm(`이 광고비(${PLATFORM_LABEL[a.platform] ?? a.platform} · ${a.campaign ?? "캠페인 없음"})를 삭제할까요?
+· 삭제하면 누가·언제·무엇을 지웠는지 기록이 남습니다`)) return;
     setSaving(true);
-    const sb = createClient();
-    const { error } = await sb.from("ad_spend").delete().eq("id", a.id);
+    const { error, logError } = await deleteWithLog("ad_spend", a, cohortName);
     setSaving(false);
     if (error) {
-      alert("삭제 실패: " + error.message);
+      alert("삭제 실패: " + error);
       return;
     }
+    if (logError) alert("삭제는 됐지만 삭제 기록을 남기지 못했습니다: " + logError);
     router.refresh();
   }
 

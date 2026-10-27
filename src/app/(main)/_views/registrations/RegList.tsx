@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import RegRow from "./RegRow";
 import { statusOf } from "./StatusCell";
+import { isHiddenByDefault } from "@/lib/auditCore";
 
 type Reg = {
   id: number;
@@ -29,7 +30,7 @@ const sectionRank = (s: string) => {
 };
 
 const PAY_OPTS = ["전체", "홈페이지", "유튜브", "기타"];
-const STATUS_OPTS = ["전체", "입금완료", "미입금", "환불", "기수이전"];
+const STATUS_OPTS = ["전체", "입금완료", "미입금", "주문취소", "환불", "기수이전"];
 const CH_OPTS: { v: string; label: string }[] = [
   { v: "전체", label: "전체 채널" },
   { v: "kakao_direct", label: "🅱️ 카카오" },
@@ -42,11 +43,14 @@ export default function RegList({ regs, cohorts, cohortId }: { regs: Reg[]; coho
   const [pay, setPay] = useState("전체");
   const [status, setStatus] = useState("전체");
   const [ch, setCh] = useState("전체");
+  const [showHidden, setShowHidden] = useState(false); // 미입금·주문취소 보기 (기본 숨김)
   const kw = q.trim().toLowerCase();
+  const hiddenCount = regs.filter(isHiddenByDefault).length;
 
-  // 드롭다운 필터 (AND) → 그 다음 검색어
+  // 드롭다운 필터 (AND) → 그 다음 검색어. 미입금·주문취소는 [취소·미입금 보기]를 켜거나 상태 필터로 고르면 보임
   const base = regs.filter(
     (r) =>
+      (showHidden || status === "미입금" || status === "주문취소" || !isHiddenByDefault(r)) &&
       (pay === "전체" || (r.pay_platform ?? "홈페이지") === pay) &&
       (status === "전체" || statusOf(r) === status) &&
       (ch === "전체" || r.channel === ch)
@@ -100,6 +104,15 @@ export default function RegList({ regs, cohorts, cohortId }: { regs: Reg[]; coho
         <select value={ch} onChange={(e) => setCh(e.target.value)} className={selCls} title="채널 필터">
           {CH_OPTS.map((c) => <option key={c.v} value={c.v}>{c.label}</option>)}
         </select>
+        <button
+          type="button"
+          aria-pressed={showHidden}
+          onClick={() => setShowHidden(!showHidden)}
+          className={`px-3 py-2.5 rounded-lg border text-sm ${showHidden ? "border-amber-400 bg-amber-500/10 text-amber-200" : "border-slate-600 text-slate-300 hover:bg-slate-800"}`}
+          title="미입금·주문취소 행은 기본으로 숨김"
+        >
+          {showHidden ? "취소·미입금 숨기기" : "취소·미입금 보기"} ({hiddenCount})
+        </button>
         {(pay !== "전체" || status !== "전체" || ch !== "전체" || q) && (
           <button onClick={() => { setPay("전체"); setStatus("전체"); setCh("전체"); setQ(""); }}
             className="px-3 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-800">필터 초기화</button>

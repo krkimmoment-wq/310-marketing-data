@@ -85,7 +85,7 @@ export default async function KakaoMessagePage({
             </thead>
             <tbody>
               {list.map((m) => (
-                <KakaoMsgRow key={m.id} m={m} />
+                <KakaoMsgRow key={m.id} m={m} cohortName={name} />
               ))}
               {list.length === 0 && (
                 <tr>

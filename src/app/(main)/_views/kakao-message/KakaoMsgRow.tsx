@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { deleteWithLog, withEditor } from "@/lib/audit";
 
 export type KakaoMsg = {
   id: number;
@@ -24,7 +25,7 @@ function ctrOf(m: { click_count: number | null; sent_count: number | null }) {
   return s ? `${Math.round((c / s) * 1000) / 10}%` : "-";
 }
 
-export default function KakaoMsgRow({ m }: { m: KakaoMsg }) {
+export default function KakaoMsgRow({ m, cohortName }: { m: KakaoMsg; cohortName?: string }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,7 +47,7 @@ export default function KakaoMsgRow({ m }: { m: KakaoMsg }) {
     const sb = createClient();
     const { error } = await sb
       .from("kakao_message")
-      .update({
+      .update(await withEditor({
         title: form.title || null,
         content: form.content || null,
         sent_date: form.sent_date || null,
@@ -54,7 +55,7 @@ export default function KakaoMsgRow({ m }: { m: KakaoMsg }) {
         impression_count: Number(form.impression_count) || 0,
         click_count: Number(form.click_count) || 0,
         total_cost: Number(form.total_cost) || 0,
-      })
+      }, sb))
       .eq("id", m.id);
     setSaving(false);
     if (error) {
@@ -66,15 +67,16 @@ export default function KakaoMsgRow({ m }: { m: KakaoMsg }) {
   }
 
   async function remove() {
-    if (!confirm(`이 카카오 메시지(${m.title ?? "제목 없음"} · ${m.sent_date ?? "발송일 없음"})를 삭제할까요?`)) return;
+    if (!confirm(`이 카카오 메시지(${m.title ?? "제목 없음"} · ${m.sent_date ?? "발송일 없음"})를 삭제할까요?
+· 삭제하면 누가·언제·무엇을 지웠는지 기록이 남습니다 (제목·내용은 기록하지 않음)`)) return;
     setSaving(true);
-    const sb = createClient();
-    const { error } = await sb.from("kakao_message").delete().eq("id", m.id);
+    const { error, logError } = await deleteWithLog("kakao_message", m, cohortName);
     setSaving(false);
     if (error) {
-      alert("삭제 실패: " + error.message);
+      alert("삭제 실패: " + error);
       return;
     }
+    if (logError) alert("삭제는 됐지만 삭제 기록을 남기지 못했습니다: " + logError);
     router.refresh();
   }
 

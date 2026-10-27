@@ -39,7 +39,7 @@ export default async function ContentPage({
 
       <ContentForm cohortId={cohort?.id} />
 
-      <ContentList items={list} />
+      <ContentList items={list} cohortName={name} />
     </div>
   );
 }

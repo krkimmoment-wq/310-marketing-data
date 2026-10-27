@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { withEditor } from "@/lib/audit";
+import { statusLabel } from "@/lib/auditCore";
 
 const STATUSES = [
   { key: "입금완료", label: "✅ 입금", cls: "text-emerald-600" },
   { key: "미입금", label: "⏳ 미입금", cls: "text-amber-600" },
+  { key: "주문취소", label: "✖️ 주문취소", cls: "text-slate-500" },
   { key: "환불", label: "↩️ 환불", cls: "text-rose-600" },
   { key: "기수이전", label: "🔄 기수이전", cls: "text-slate-500" },
 ] as const;
@@ -15,16 +18,14 @@ const STATUSES = [
 const MAP: Record<string, { payment: string; is_refund: boolean; is_transfer: boolean }> = {
   입금완료: { payment: "입금완료", is_refund: false, is_transfer: false },
   미입금: { payment: "미입금", is_refund: false, is_transfer: false },
+  주문취소: { payment: "주문취소", is_refund: false, is_transfer: false },
   환불: { payment: "입금완료", is_refund: true, is_transfer: false },
   기수이전: { payment: "입금완료", is_refund: false, is_transfer: true },
 };
 
-// 행 데이터 → 현재 상태 라벨
+// 행 데이터 → 현재 상태 라벨 (계산은 auditCore.statusLabel 하나로)
 export function statusOf(r: { payment: string; is_refund?: boolean; is_transfer?: boolean }) {
-  if (r.is_transfer) return "기수이전";
-  if (r.is_refund) return "환불";
-  if (r.payment === "미입금") return "미입금";
-  return "입금완료";
+  return statusLabel(r);
 }
 
 export default function StatusCell({ id, status }: { id: number; status: string }) {
@@ -36,7 +37,7 @@ export default function StatusCell({ id, status }: { id: number; status: string 
     if (next === status) return;
     setSaving(true);
     const sb = createClient();
-    const { error } = await sb.from("registrations").update(MAP[next]).eq("id", id);
+    const { error } = await sb.from("registrations").update(await withEditor(MAP[next], sb)).eq("id", id);
     setSaving(false);
     if (error) {
       alert("저장 실패: " + error.message);

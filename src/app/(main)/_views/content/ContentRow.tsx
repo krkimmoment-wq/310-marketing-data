@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { deleteWithLog, withEditor } from "@/lib/audit";
 
 // 기수×Day 표 뱃지와 연결: 특강🎤 · 라이브(챌린지 라이브) · 커뮤니티📝 · 프로모션💰 · 숏폼⚡ · 롱폼📺 · 나머지📌
 // 계획판 실행 확인: 특강 계획 = '특강' 기록, 챌린지 라이브 계획 = '라이브' 기록
@@ -29,7 +30,7 @@ export const splitPlat = (s: string | null) => (s ? s.split(/\s*,\s*/).filter(Bo
 
 const inputCls = "mt-1 w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700 text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-400 text-sm";
 
-export default function ContentRow({ c }: { c: Content }) {
+export default function ContentRow({ c, cohortName }: { c: Content; cohortName?: string }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -58,7 +59,7 @@ export default function ContentRow({ c }: { c: Content }) {
     const sb = createClient();
     const { error } = await sb
       .from("content_log")
-      .update({
+      .update(await withEditor({
         pub_date: form.pub_date,
         category: form.category,
         platform: form.platforms.join(", ") || null,
@@ -68,7 +69,7 @@ export default function ContentRow({ c }: { c: Content }) {
         reach: form.reach || null,
         status: form.status,
         note: form.note || null,
-      })
+      }, sb))
       .eq("id", c.id);
     setSaving(false);
     if (error) { alert("저장 실패: " + error.message); return; }
@@ -77,12 +78,13 @@ export default function ContentRow({ c }: { c: Content }) {
   }
 
   async function remove() {
-    if (!confirm(`콘텐츠 "${c.title ?? ""}"를 삭제할까요?`)) return;
+    if (!confirm(`콘텐츠 "${c.title ?? ""}"를 삭제할까요?
+· 삭제하면 누가·언제·무엇을 지웠는지 기록이 남습니다 (제목·메모는 기록하지 않음)`)) return;
     setSaving(true);
-    const sb = createClient();
-    const { error } = await sb.from("content_log").delete().eq("id", c.id);
+    const { error, logError } = await deleteWithLog("content_log", c, cohortName);
     setSaving(false);
-    if (error) { alert("삭제 실패: " + error.message); return; }
+    if (error) { alert("삭제 실패: " + error); return; }
+    if (logError) alert("삭제는 됐지만 삭제 기록을 남기지 못했습니다: " + logError);
     router.refresh();
   }
 

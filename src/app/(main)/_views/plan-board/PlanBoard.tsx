@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter";
 import { createClient } from "@/lib/supabase/client";
+import { deleteWithLog, withEditor } from "@/lib/audit";
 import {
   AD_CHANNEL_LABEL, KIND_META, PLAN_PHASE_BG, STATUS_LABEL,
   addDays, adActualPeriod, adOnDates, checkExecution, dayNumber, diffDays, draftDiff, generateDraft, monthWeeks, phaseStartLabel, planMonths, planPhase,
@@ -221,14 +222,16 @@ export default function PlanBoard({
   }
   async function remove() {
     if (!form?.id) return;
-    if (!window.confirm(`"${form.title ?? KIND_META[form.kind].label}" 항목을 삭제할까요?`)) return;
+    if (!window.confirm(`"${form.title ?? KIND_META[form.kind].label}" 항목을 삭제할까요?
+· 삭제하면 누가·언제·무엇을 지웠는지 기록이 남습니다 (제목·담당·메모는 기록하지 않음)`)) return;
+    const target = list.find((x) => x.id === form.id);
     setBusy(true);
-    const { error } = await createClient().from("plan_items").delete().eq("id", form.id);
+    const { error, logError } = await deleteWithLog("plan_items", target ?? { id: form.id, cohort_id: cohort.id, plan_date: form.plan_date, kind: form.kind, status: form.status }, cohort.name);
     setBusy(false);
-    if (error) return setMsg("삭제 실패: " + error.message);
+    if (error) return setMsg("삭제 실패: " + error);
     setList((l) => l.filter((x) => x.id !== form.id));
     setForm(null);
-    setMsg("삭제했습니다.");
+    setMsg(logError ? "삭제했습니다. (삭제 기록 실패: " + logError + ")" : "삭제했습니다.");
     router.refresh();
   }
   // 끌어서 날짜 옮기기 (광고는 끄는 날도 같은 만큼 이동)
