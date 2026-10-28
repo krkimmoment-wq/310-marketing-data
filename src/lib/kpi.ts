@@ -1,5 +1,6 @@
 // 대시보드 KPI 계산 + 자동 인사이트 + 예측
 import { createClient } from "@/lib/supabase/server";
+import { cohortRevenue } from "@/lib/revenueCore";
 
 export type Insight = { tone: "good" | "warn" | "info"; text: string };
 
@@ -52,12 +53,7 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
   const normal = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund && !r.is_transfer);
   const arrivals = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료" && !r.is_refund);
   const real = [...normal, ...arrivals];
-  // ── 매출용 net: 부분환불 잔액 반영(amount−refund_amount). is_refund인데 환불액 미지정(0)이면 전액환불로 간주(0)
-  const net = (r: { is_refund?: boolean; amount?: number | null; refund_amount?: number | null }) =>
-    r.is_refund && (r.refund_amount ?? 0) === 0 ? 0 : (r.amount ?? 0) - (r.refund_amount ?? 0);
-  // 매출은 환불자 포함(잔액 반영), 이전자는 도착 기수로 귀속되므로 own에서 제외
-  const ownRevRows = (regs ?? []).filter((r) => r.payment === "입금완료" && !r.is_transfer);
-  const arrivalRevenue = (arrivalsRaw ?? []).filter((r) => r.payment === "입금완료").reduce((s, r) => s + net(r), 0);
+  // ── 매출: revenueCore.cohortRevenue (환불자 잔액 반영, 이전자는 도착 기수로)
   const bySection: Record<string, number> = {};
   const totalAd = (ads ?? []).reduce((s, a) => s + (a.cost ?? 0), 0);
 
@@ -67,12 +63,12 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
     // 개별 명단 있는 기수(14기~): 인원=정상+도착이전(환불 제외) / 매출=Σ(amount−refund_amount)+도착이전 net
     for (const r of real) bySection[r.section] = (bySection[r.section] ?? 0) + 1;
     realRegs = real.length;
-    totalRevenue = ownRevRows.reduce((s, r) => s + net(r), 0) + arrivalRevenue;
+    totalRevenue = cohortRevenue(regs ?? [], arrivalsRaw ?? [], []);
   } else {
-    // 명단 없는 완주 기수(13기): cohort_daily 누적 + revenue, + 도착 이전자 가산
+    // 명단 없는 완주 기수(13기): cohort_daily 누적 + revenue(결제−환불), + 도착 이전자 가산
     const [{ data: daily }, { data: revs }] = await Promise.all([
       sb.from("cohort_daily").select("section, new_count, refund_count").eq("cohort_id", cohort.id),
-      sb.from("revenue").select("total_paid").eq("cohort_id", cohort.id),
+      sb.from("revenue").select("total_paid, refund").eq("cohort_id", cohort.id),
     ]);
     let cum = 0;
     for (const d of daily ?? []) {
@@ -83,7 +79,7 @@ export async function getKpi(cohortName = "14기"): Promise<Kpi | null> {
     }
     for (const r of arrivals) bySection[r.section] = (bySection[r.section] ?? 0) + 1;
     realRegs = cum + arrivals.length;
-    totalRevenue = (revs ?? []).reduce((s, r) => s + (r.total_paid ?? 0), 0) + arrivalRevenue;
+    totalRevenue = cohortRevenue([], arrivalsRaw ?? [], revs ?? []);
   }
   const roas = totalAd ? Math.round((totalRevenue / totalAd) * 10) / 10 : 0;
   const cac = realRegs ? Math.round(totalAd / realRegs) : 0;
