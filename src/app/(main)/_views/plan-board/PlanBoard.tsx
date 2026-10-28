@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { deleteWithLog, withEditor } from "@/lib/audit";
 import {
   AD_CHANNEL_LABEL, KIND_META, PLAN_PHASE_BG, STATUS_LABEL,
-  LIVE_RULE_KEY, addDays, adActualPeriod, adOnDates, checkExecution, dayNumber, diffDays, draftDiff, generateDraft, isBandKind, isLiveNotice, monthWeeks, phaseStartLabel, planMonths, planPhase,
+  LIVE_RULE_KEY, addDays, adActualPeriod, adOnDates, checkExecution, dayNumber, diffDays, draftDiff, generateDraft, isBandKind, isLiveLinked, monthWeeks, mwfWarning, phaseStartLabel, planMonths, planPhase,
   type ActualChip, type AdChannel, type DraftItem, type ExecRecords, type ExecStatus, type PlanItem, type PlanKind, type PlanStatus,
 } from "@/lib/planCore";
 import type { PlanCohort } from "@/lib/plan";
@@ -208,7 +208,7 @@ export default function PlanBoard({
     const sb = createClient();
     const row = {
       plan_date: form.plan_date,
-      end_date: isBandKind(form.kind) ? form.end_date || null : null, // 광고 끄는 날 · 키콘·응대 끝나는 날
+      end_date: isBandKind(form.kind) ? form.end_date || null : null, // 광고 끄는 날 · 키콘·응대·특강 모집 끝나는 날
       plan_time: form.plan_time || null,
       kind: form.kind,
       title: form.title || null,
@@ -227,7 +227,8 @@ export default function PlanBoard({
       : await sb.from("plan_items").insert({ ...row, cohort_id: cohort.id, source: "manual" });
     setBusy(false);
     if (res.error) return setMsg("저장 실패: " + res.error.message);
-    setMsg(form.id ? "저장했습니다." : "추가했습니다.");
+    const warn = mwfWarning({ kind: form.kind, rule_key: form.rule_key ?? null, title: form.title }, form.plan_date);
+    setMsg((form.id ? "저장했습니다." : "추가했습니다.") + (warn ? ` ${warn}` : ""));
     setForm(null);
     router.refresh();
   }
@@ -245,13 +246,14 @@ export default function PlanBoard({
     setMsg(logError ? "삭제했습니다. (삭제 기록 실패: " + logError + ")" : "삭제했습니다.");
     router.refresh();
   }
-  // 끌어서 날짜 옮기기 (띠는 끝나는 날도 같은 만큼 이동 · 규칙 초안의 라이브는 오픈채팅 공지 3개도 같이 이동)
+  // 끌어서 날짜 옮기기 (띠는 끝나는 날도 같은 만큼 이동 · 규칙 초안의 라이브는 라이브 공지 3개·라이브 후 응대도 같이 이동
+  //   · 라이브·촬영을 월·수·금으로 옮기면 경고 문구)
   async function move(id: number, date: string) {
     const it = list.find((x) => x.id === id);
     if (!it || it.plan_date === date) return;
     const delta = diffDays(it.plan_date, date);
     const shift = (x: PlanItem) => ({ plan_date: addDays(x.plan_date, delta), end_date: x.end_date ? addDays(x.end_date, delta) : null });
-    const linked = it.rule_key === LIVE_RULE_KEY ? list.filter((x) => isLiveNotice(x)) : [];
+    const linked = it.rule_key === LIVE_RULE_KEY ? list.filter((x) => isLiveLinked(x)) : [];
     const moves = [it, ...linked].map((x) => ({ id: x.id, patch: shift(x) }));
     const before = list;
     setList((l) => l.map((x) => { const mv = moves.find((m) => m.id === x.id); return mv ? { ...x, ...mv.patch } : x; }));
@@ -265,7 +267,8 @@ export default function PlanBoard({
         return setMsg("옮기기 실패: " + error.message);
       }
     }
-    setMsg(`${KIND_META[it.kind].label} "${it.title ?? ""}" → ${md(date)}(${wd(date)})로 옮김${linked.length ? ` · 오픈채팅 공지 ${linked.length}개도 ${delta > 0 ? "+" : ""}${delta}일 같이 옮김` : ""}`);
+    const warn = mwfWarning(it, date);
+    setMsg(`${KIND_META[it.kind].label} "${it.title ?? ""}" → ${md(date)}(${wd(date)})로 옮김${linked.length ? ` · 라이브 공지·응대 ${linked.length}개도 ${delta > 0 ? "+" : ""}${delta}일 같이 옮김` : ""}${warn ? ` ${warn}` : ""}`);
     router.refresh();
   }
   async function addDraft() {
@@ -356,7 +359,7 @@ export default function PlanBoard({
               {p}
             </span>
           ))}
-          <span>· 점선 칩 = 계획 (점 테두리 = 선택 항목) · 실선 칩 = 실제 기록 · 얇은 띠 = 키콘·응대 기간 · 칩 끝 표시: ✓ 완료 · … 2일 유예 · ! 누락 · ? 사람 확인</span>
+          <span>· 점선 칩 = 계획 (점 테두리 = 선택 항목) · 실선 칩 = 실제 기록 · 얇은 띠 = 키콘·응대·특강 모집 기간 · 라이브·촬영은 월·수·금이면 경고 · 칩 끝 표시: ✓ 완료 · … 2일 유예 · ! 누락 · ? 사람 확인</span>
         </div>
         {msg && <p role="status" className="text-[13px] font-bold text-blue-800">{msg}</p>}
       </div>
@@ -475,7 +478,7 @@ export default function PlanBoard({
                   </div>
                 </div>
               )}
-              {(form.kind === "keycon" || form.kind === "support") && (
+              {(form.kind === "keycon" || form.kind === "support" || form.kind === "recruit") && (
                 <label className="flex flex-col gap-1">끝나는 날 (비우면 하루짜리)
                   <input type="date" value={form.end_date ?? ""} onChange={(e) => setForm({ ...form, end_date: e.target.value || null })} className="min-h-10 rounded-lg border border-gray-300 px-2" />
                 </label>
@@ -502,7 +505,7 @@ export default function PlanBoard({
           </span>
         </h2>
         <p className="text-[12px] text-gray-600">
-          카톡 = 카톡 메시지 발송일 · 응대·오픈채팅 공지 = 사람 확인 · 광고 = 광고비 시작일 ±1일 + 종류(장부에 종류가 있으면 종류까지, 없으면 매체) · 끄는 날이 지났는데 장부 종료일이 빈칸이면 &quot;끄기 확인&quot; · 특강·라이브 = 콘텐츠 기록 종류(특강·라이브) · 홍보쇼츠·키콘 = 같은 날 숏폼·롱폼이 있으면 &quot;사람 확인&quot; · 기록이 없으면 2일 유예 후 누락
+          카톡 = 카톡 메시지 발송일 · 응대·오픈채팅 공지·특강 예고·특강 모집·다시보기 마감·특강 녹화 촬영 = 사람 확인 · 광고 = 광고비 시작일 ±1일 + 종류(장부에 종류가 있으면 종류까지, 없으면 매체) · 끄는 날이 지났는데 장부 종료일이 빈칸이면 &quot;끄기 확인&quot; · 특강·라이브 = 콘텐츠 기록 종류(특강·라이브) · 홍보쇼츠·키콘 = 같은 날 숏폼·롱폼이 있으면 &quot;사람 확인&quot; · 기록이 없으면 2일 유예 후 누락
         </p>
         {execRows.length > 0 && (
           <div className="overflow-x-auto">
