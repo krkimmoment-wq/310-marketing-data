@@ -24,6 +24,7 @@ export const MENUS: MenuDef[] = [
     tabs: [
       { key: "plan", label: "계획 캘린더" },
       { key: "budget", label: "광고 예산" },
+      { key: "sim", label: "광고 시뮬레이터", short: "광고 시뮬" },
       { key: "records", label: "기록 캘린더" },
     ],
   },

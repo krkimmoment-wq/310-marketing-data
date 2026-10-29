@@ -1,0 +1,117 @@
+/* ③ 계획 › 광고 시뮬레이터 — 목업 v0.2(10/29 승인) 관제 화면. 모든 규칙은 .adsim 안에서만 적용 */
+.adsim {
+  --bg: #030b12; --panel: rgba(7, 26, 42, 0.78); --panel2: rgba(10, 38, 60, 0.6);
+  --cyan: #46e6ff; --cyan-dim: rgba(70, 230, 255, 0.38); --line: rgba(70, 230, 255, 0.2); --grid: rgba(70, 230, 255, 0.05);
+  --ink: #ddf7ff; --muted: #7fafc1; --amber: #ffb648; --red: #ff6464; --green: #5be3a4; --off: #20435a;
+  --f-hud: var(--font-orbitron), ui-monospace, monospace;
+  --f-num: ui-monospace, "Cascadia Mono", Menlo, monospace;
+  color-scheme: dark;
+  min-height: 100vh; color: var(--ink); font-size: 14.5px; line-height: 1.55;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(27, 168, 212, 0.22), transparent 60%),
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 40px 40px, var(--bg);
+  padding: 16px max(16px, 2vw) 56px;
+}
+.adsim .wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.adsim h1, .adsim h2 { margin: 0; line-height: 1.3; font-weight: 600; text-wrap: balance; }
+.adsim .hud { font-family: var(--f-hud); letter-spacing: 0.12em; text-transform: uppercase; }
+.adsim .num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.adsim .muted { color: var(--muted); }
+.adsim .small { font-size: 12.5px; }
+.adsim .pn { position: relative; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); padding: 16px 16px 14px; min-width: 0; box-shadow: inset 0 0 30px rgba(70, 230, 255, 0.05); }
+.adsim .pn::before, .adsim .pn::after { content: ""; position: absolute; width: 16px; height: 16px; border: 2px solid var(--cyan); pointer-events: none; }
+.adsim .pn::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.adsim .pn::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+.adsim .pn-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }
+.adsim .pn-h h2 { font-size: 15px; }
+.adsim .code { font-size: 10.5px; color: var(--cyan); opacity: 0.85; white-space: nowrap; }
+.adsim .sec { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--cyan); margin-top: 8px; }
+.adsim .sec::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.adsim .sec b { font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.adsim .top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: flex-end; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.adsim .top h1 { font-size: 24px; text-shadow: 0 0 18px rgba(70, 230, 255, 0.35); }
+.adsim .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.adsim .chip { font-family: var(--f-num); font-size: 11.5px; color: var(--cyan); border: 1px solid var(--line); padding: 3px 8px; background: rgba(70, 230, 255, 0.06); }
+.adsim .chip b { color: var(--ink); font-weight: 400; }
+.adsim .stage { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: center; }
+.adsim .st-box { border: 1px solid var(--line); padding: 10px 12px; background: rgba(70, 230, 255, 0.04); display: flex; flex-direction: column; gap: 4px; }
+.adsim .st-box.now { border-color: var(--cyan); box-shadow: inset 3px 0 0 var(--cyan); }
+.adsim .meter { height: 6px; background: var(--off); position: relative; margin-top: 4px; }
+.adsim .meter i { position: absolute; inset: 0 auto 0 0; background: var(--amber); }
+.adsim .hero { display: grid; grid-template-columns: 280px minmax(0, 1fr) 300px; gap: 16px; }
+.adsim .reads { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-content: start; }
+.adsim .rd { border-left: 2px solid var(--cyan); padding: 6px 10px; background: rgba(70, 230, 255, 0.04); }
+.adsim .rd .l { font-size: 12px; color: var(--muted); }
+.adsim .rd .v { font: 400 26px/1.15 var(--f-num); color: var(--ink); }
+.adsim .rd .s { font-size: 11.5px; color: var(--muted); }
+.adsim .verdict { grid-column: 1 / -1; border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+.adsim .share { grid-column: 1 / -1; border: 1px dashed var(--cyan-dim); padding: 8px 12px; font-size: 13.5px; background: rgba(70, 230, 255, 0.04); }
+.adsim .qb { display: flex; flex-direction: column; gap: 6px; }
+.adsim .qb button, .adsim .btn { font: inherit; font-size: 13.5px; text-align: left; padding: 9px 12px; background: rgba(70, 230, 255, 0.04); border: 1px solid var(--line); color: var(--ink); cursor: pointer; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.adsim .qb button[aria-pressed="true"] { border-color: var(--cyan); background: rgba(70, 230, 255, 0.14); box-shadow: inset 3px 0 0 var(--cyan); }
+.adsim .btn { display: inline-flex; width: auto; }
+.adsim button:focus-visible, .adsim select:focus-visible, .adsim input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.adsim .field { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.adsim .field input, .adsim .flight input { font: 400 15px var(--f-num); padding: 5px 8px; background: var(--bg); border: 1px solid var(--cyan-dim); color: var(--cyan); }
+.adsim .field input { width: 96px; }
+.adsim .main { display: grid; grid-template-columns: minmax(0, 370px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.adsim .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.adsim .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.adsim .grp { font-size: 10.5px; color: var(--cyan); padding: 12px 0 2px; display: flex; align-items: center; gap: 8px; }
+.adsim .grp::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.adsim .lv { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; }
+.adsim .lv .row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.adsim .lv .lab { font-weight: 600; font-size: 13.5px; }
+.adsim .lv .val { font: 400 14px var(--f-num); color: var(--cyan); white-space: nowrap; }
+.adsim .lv .why { font-size: 12px; color: var(--muted); }
+.adsim .lv input[type="range"] { width: 100%; accent-color: var(--cyan); }
+.adsim .lv select { font: inherit; font-size: 13.5px; padding: 6px 8px; background: var(--bg); border: 1px solid var(--line); color: var(--ink); width: 100%; }
+.adsim .pair { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.adsim .locked { opacity: 0.55; }
+.adsim .lockbar { border: 1px dashed var(--off); padding: 8px 10px; font: 400 12px var(--f-num); color: var(--muted); background: repeating-linear-gradient(45deg, rgba(32, 67, 90, 0.35) 0 6px, transparent 6px 12px); }
+.adsim .bd { display: inline-block; font: 400 10.5px var(--f-num); padding: 1px 6px; border: 1px solid; vertical-align: 1px; white-space: nowrap; }
+.adsim .bd-data { color: var(--cyan); border-color: var(--cyan-dim); }
+.adsim .bd-as { color: var(--amber); border-color: rgba(255, 182, 72, 0.45); }
+.adsim .bd-none { color: var(--red); border-color: rgba(255, 100, 100, 0.45); }
+.adsim .bd-pass { color: var(--green); border-color: rgba(91, 227, 164, 0.5); }
+.adsim .bd-ex { color: var(--amber); border-color: rgba(255, 182, 72, 0.45); border-style: dashed; }
+.adsim svg text { font-family: var(--f-num); }
+.adsim table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.adsim th, .adsim td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.adsim th { font-size: 11.5px; color: var(--muted); font-weight: 500; }
+.adsim td.r, .adsim th.r { text-align: right; font-family: var(--f-num); white-space: nowrap; }
+.adsim .tbl { overflow-x: auto; }
+.adsim tr.hl td { background: rgba(70, 230, 255, 0.08); }
+.adsim tr.hl td:first-child { box-shadow: inset 3px 0 0 var(--cyan); }
+.adsim .pill { display: inline-block; font: 400 11px var(--f-num); padding: 2px 8px; border: 1px solid; white-space: nowrap; }
+.adsim .p-below { color: var(--red); border-color: rgba(255, 100, 100, 0.5); }
+.adsim .p-in { color: var(--cyan); border-color: var(--cyan-dim); }
+.adsim .p-above { color: var(--green); border-color: rgba(91, 227, 164, 0.5); }
+.adsim .p-warn { color: var(--amber); border-color: rgba(255, 182, 72, 0.5); }
+.adsim .flight { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.adsim .flight label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.adsim .flight input { width: 100%; }
+.adsim .diag { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 10px; }
+.adsim .dg { border: 1px solid var(--line); padding: 8px 10px; font-size: 13px; }
+.adsim .dg.ref { border-style: dashed; }
+.adsim .dg .l { font-size: 11.5px; color: var(--muted); }
+.adsim .dg .v { font: 400 18px var(--f-num); }
+.adsim .cell { display: flex; flex-direction: column; gap: 2px; }
+.adsim .cell .m { font: 400 15px var(--f-num); }
+.adsim .cell .rg { font: 400 11.5px var(--f-num); color: var(--muted); }
+.adsim select.pick { font: inherit; font-size: 12.5px; padding: 4px 6px; background: var(--bg); border: 1px solid var(--line); color: var(--ink); }
+.adsim .sensors { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+.adsim .sn { border: 1px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; background: rgba(70, 230, 255, 0.03); }
+.adsim .sn .h { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.adsim .sn .h b { font-size: 13.5px; font-weight: 600; }
+.adsim .sn .st { font: 400 11px var(--f-num); white-space: nowrap; }
+.adsim .sn .st::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: currentColor; }
+.adsim .sn p { font-size: 12.5px; color: var(--muted); margin: 0; }
+.adsim .on { color: var(--cyan); } .adsim .part { color: var(--amber); } .adsim .offl { color: var(--red); }
+.adsim .warnline { color: var(--amber); font-size: 12.5px; }
+.adsim .spin { transform-origin: 130px 130px; animation: adsim-spin 40s linear infinite; }
+@keyframes adsim-spin { to { transform: rotate(360deg); } }
+@media (max-width: 1050px) { .adsim .hero, .adsim .main { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .adsim .stage { grid-template-columns: 1fr; } .adsim .stage .arrow { display: none; } }
+@media (prefers-reduced-motion: reduce) { .adsim .spin { animation: none; } }
